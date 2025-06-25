@@ -127,6 +127,7 @@ export default function MyListPage() {
     if (newItemText.trim() === '' || !listId || !user) return;
     const newItemPayload = {
       list_id: listId,
+      user_id: user.id,
       text: newItemText,
       completed: false,
       category: 'Other' as const,

@@ -7,6 +7,7 @@ export type ListItem = {
   category: ListItemCategory;
   position: number;
   list_id: string;
+  user_id: string;
   created_at: string;
 };
 
