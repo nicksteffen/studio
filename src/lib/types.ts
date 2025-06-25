@@ -5,6 +5,9 @@ export type ListItem = {
   text: string;
   completed: boolean;
   category: ListItemCategory;
+  position: number;
+  list_id: string;
+  created_at: string;
 };
 
 export type UserList = {
