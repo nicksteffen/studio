@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config) => {
+    config.externals = [...config.externals, '@opentelemetry/exporter-jaeger', 'handlebars'];
+    return config;
+  },
 };
 
 export default nextConfig;
