@@ -90,6 +90,8 @@ export default function MyListPage() {
             setUser(session.user);
             fetchListData(session.user);
         } else {
+            setUser(null);
+            setItems([]);
             setLoading(false);
             router.push('/login');
         }
@@ -220,6 +222,9 @@ export default function MyListPage() {
     clonedNode.style.pointerEvents = 'none';
 
     document.body.appendChild(clonedNode);
+    
+    // Add a short delay to ensure the browser has time to render the cloned node and its assets
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     try {
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';
