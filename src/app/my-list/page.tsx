@@ -35,65 +35,69 @@ export default function MyListPage() {
   const dragOverItem = useRef<number | null>(null);
 
   useEffect(() => {
-    const fetchUserAndList = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    const fetchListData = async (user: User) => {
+        let { data: listData, error: listError } = await supabase
+            .from('lists')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+        
+        let currentListId = listData?.id;
 
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-      setUser(user);
-
-      let { data: listData, error: listError } = await supabase
-        .from('lists')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-      
-      let currentListId = listData?.id;
-
-      if (listError && listError.code !== 'PGRST116') { // PGRST116 is 'exact-one-row-not-found'
-        console.error('Error fetching list:', listError);
-        toast({ title: "Error", description: "Could not fetch your list.", variant: "destructive" });
-        setLoading(false);
-        return;
-      }
-
-      if (!listData) {
-        const { data: newListData, error: newListError } = await supabase
-          .from('lists')
-          .insert({ user_id: user.id, title: `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List` })
-          .select('id')
-          .single();
-
-        if (newListError) {
-          console.error('Error creating list:', newListError);
-          toast({ title: "Error", description: "Could not create a new list for you.", variant: "destructive" });
-          setLoading(false);
-          return;
+        if (listError && listError.code !== 'PGRST116') {
+            console.error('Error fetching list:', listError);
+            toast({ title: "Error", description: "Could not fetch your list.", variant: "destructive" });
+            setLoading(false);
+            return;
         }
-        currentListId = newListData.id;
-      }
 
-      if (currentListId) {
-          setListId(currentListId);
-          const { data: itemsData, error: itemsError } = await supabase
-            .from('list_items')
-            .select('*')
-            .eq('list_id', currentListId)
-            .order('position', { ascending: true });
+        if (!listData) {
+            const { data: newListData, error: newListError } = await supabase
+                .from('lists')
+                .insert({ user_id: user.id, title: `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List` })
+                .select('id')
+                .single();
+
+            if (newListError) {
+                console.error('Error creating list:', newListError);
+                toast({ title: "Error", description: "Could not create a new list for you.", variant: "destructive" });
+                setLoading(false);
+                return;
+            }
+            currentListId = newListData.id;
+        }
+
+        if (currentListId) {
+            setListId(currentListId);
+            const { data: itemsData, error: itemsError } = await supabase
+                .from('list_items')
+                .select('*')
+                .eq('list_id', currentListId)
+                .order('position', { ascending: true });
     
-          if (itemsError) {
-            console.error('Error fetching items:', itemsError);
-            toast({ title: "Error", description: "Could not fetch your list items.", variant: "destructive" });
-          } else {
-            setItems(itemsData || []);
-          }
-      }
-      setLoading(false);
-    };
+            if (itemsError) {
+                console.error('Error fetching items:', itemsError);
+                toast({ title: "Error", description: "Could not fetch your list items.", variant: "destructive" });
+            } else {
+                setItems(itemsData || []);
+            }
+        }
+        setLoading(false);
+    }
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+            setUser(session.user);
+            fetchListData(session.user);
+        } else {
+            setLoading(false);
+            router.push('/login');
+        }
+    });
 
-    fetchUserAndList();
+    return () => {
+        subscription.unsubscribe();
+    };
   }, [router, toast]);
 
 
