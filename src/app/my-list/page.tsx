@@ -208,11 +208,7 @@ export default function MyListPage() {
       return;
     }
     try {
-      // This is the key change: we fetch the font CSS and provide it to the library.
-      // This ensures the custom handwriting font is embedded into the generated image.
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';
-      // The User-Agent header is important here. Google Fonts serves different CSS based on the user agent.
-      // We'll mimic a common browser to get the woff2 files.
       const fontCss = await fetch(fontUrl, {
         headers: {
           'User-Agent':
@@ -224,6 +220,8 @@ export default function MyListPage() {
         cacheBust: true,
         pixelRatio: 2,
         fontEmbedCSS: fontCss,
+        width: 1080,
+        height: 1920,
       });
 
       download(dataUrl, 'my-before-30-list.png');
