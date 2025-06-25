@@ -8,13 +8,14 @@ import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';
-import { generateListImageAction } from './actions';
+import { ImageGenerator } from './image-generator';
 
 
 export default function MyListPage() {
@@ -30,6 +31,7 @@ export default function MyListPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  const imageGeneratorRef = useRef<HTMLDivElement>(null);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
@@ -204,7 +206,15 @@ export default function MyListPage() {
   const progressValue = (completedCount / 30) * 100;
 
   const handleGenerateImage = async () => {
-    if (!items || items.length === 0) {
+    if (!imageGeneratorRef.current) {
+      toast({
+        title: 'Error',
+        description: 'Image generator is not ready.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (items.length === 0) {
       toast({
         title: 'Empty List',
         description: 'Add some items to your list before generating an image.',
@@ -214,14 +224,20 @@ export default function MyListPage() {
     }
 
     setIsGeneratingImage(true);
+
+    const node = imageGeneratorRef.current;
+    const clone = node.cloneNode(true) as HTMLElement;
+    
+    clone.style.position = 'absolute';
+    clone.style.left = '-9999px';
+    clone.style.top = '0px';
+    clone.style.zIndex = '-1';
+    
+    document.body.appendChild(clone);
+    
     try {
-      const result = await generateListImageAction({ items });
-
-      if (result.error || !result.imageDataUri) {
-        throw new Error(result.error || 'Failed to generate image.');
-      }
-
-      download(result.imageDataUri, 'my-before-30-list.png');
+      const dataUrl = await toPng(clone, { cacheBust: true, pixelRatio: 2, width: 1080, height: 1920 });
+      download(dataUrl, 'my-before-30-list.png');
       toast({ title: 'Success!', description: 'Your image has been downloaded.' });
     } catch (err: any) {
       console.error(err);
@@ -231,6 +247,7 @@ export default function MyListPage() {
         variant: 'destructive',
       });
     } finally {
+      document.body.removeChild(clone);
       setIsGeneratingImage(false);
     }
   };
@@ -355,6 +372,7 @@ export default function MyListPage() {
           </CardContent>
         </Card>
       </div>
+      <ImageGenerator ref={imageGeneratorRef} items={items} />
     </>
   );
 }
