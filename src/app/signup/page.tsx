@@ -10,23 +10,23 @@ import { useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      router.push('/my-list');
-      router.refresh();
+      alert('Account created successfully! Please log in.');
+      router.push('/login');
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -38,11 +38,11 @@ export default function LoginPage() {
     <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl text-primary">Welcome Back</CardTitle>
-          <CardDescription>Sign in to continue your list.</CardDescription>
+          <CardTitle className="font-headline text-3xl text-primary">Create Account</CardTitle>
+          <CardDescription>Start your journey today.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignIn} className="space-y-4">
+          <form onSubmit={handleSignUp} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -69,13 +69,13 @@ export default function LoginPage() {
             {error && <p className="text-destructive text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
+              Sign Up
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            Don't have an account?
+            Already have an account?
             <Button variant="link" asChild className="pl-1">
-              <Link href="/signup">Sign Up</Link>
+              <Link href="/login">Sign In</Link>
             </Button>
           </div>
         </CardContent>

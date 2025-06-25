@@ -50,7 +50,7 @@ export function UserNav() {
           <Link href="/login">Login</Link>
         </Button>
         <Button asChild>
-          <Link href="/login">Sign Up</Link>
+          <Link href="/signup">Sign Up</Link>
         </Button>
       </div>
     );
