@@ -12,11 +12,15 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
     <div
       ref={ref}
       style={{
-        position: 'absolute',
-        left: '-9999px',
-        top: '-9999px',
+        // For debugging: make the component visible
+        position: 'relative',
         width: '1080px',
         height: '1920px',
+        margin: '2rem auto',
+        transform: 'scale(0.3)',
+        transformOrigin: 'top center',
+        border: '4px dashed hsl(var(--primary))',
+        overflow: 'hidden',
       }}
     >
       <div className="font-handwriting bg-[#fefae0] w-[1080px] h-[1920px] p-20 flex flex-col"
