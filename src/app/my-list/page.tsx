@@ -224,7 +224,7 @@ export default function MyListPage() {
     document.body.appendChild(clonedNode);
     
     // Add a short delay to ensure the browser has time to render the cloned node and its assets
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     try {
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';
