@@ -8,7 +8,7 @@ import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { toPng } from 'html-to-image';
+import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
@@ -226,17 +226,32 @@ export default function MyListPage() {
     setIsGeneratingImage(true);
 
     const node = imageGeneratorRef.current;
+    
+    // Create a clone of the node to capture. This is a robust way to handle off-screen elements.
     const clone = node.cloneNode(true) as HTMLElement;
     
+    // Style the clone to be rendered off-screen
     clone.style.position = 'absolute';
     clone.style.left = '-9999px';
     clone.style.top = '0px';
     clone.style.zIndex = '-1';
     
+    // Append the clone to the body to ensure it's rendered by the browser
     document.body.appendChild(clone);
     
     try {
-      const dataUrl = await toPng(clone, { cacheBust: true, pixelRatio: 2, width: 1080, height: 1920 });
+      // Add a small delay to allow the browser to render the clone, especially fonts
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(clone, {
+        useCORS: true,
+        scale: 2, // Capture at a higher resolution
+        width: 1080,
+        height: 1920,
+        backgroundColor: null, // Let the component's background show through
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
       download(dataUrl, 'my-before-30-list.png');
       toast({ title: 'Success!', description: 'Your image has been downloaded.' });
     } catch (err: any) {
@@ -247,6 +262,7 @@ export default function MyListPage() {
         variant: 'destructive',
       });
     } finally {
+      // Clean up by removing the clone from the DOM
       document.body.removeChild(clone);
       setIsGeneratingImage(false);
     }
