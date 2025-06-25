@@ -25,7 +25,7 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
       }}
     >
       <div className="text-center mb-12">
-          <h1 className="text-8xl font-bold text-[#d4a373]">My 30 Before 30</h1>
+          <h1 className="text-8xl font-bold text-[#d4a373] font-headline">My 30 Before 30</h1>
       </div>
       
       <ul className="space-y-4 text-5xl text-gray-800 flex-grow">

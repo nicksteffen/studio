@@ -213,21 +213,15 @@ export default function MyListPage() {
     const elementToClone = imageGeneratorRef.current;
     const clonedNode = elementToClone.cloneNode(true) as HTMLDivElement;
 
-    // Remove the off-screen positioning from the clone and hide it invisibly
+    // Position the clone off-screen
     clonedNode.style.position = 'fixed';
-    clonedNode.style.top = '0';
-    clonedNode.style.left = '0';
-    clonedNode.style.zIndex = '-1';
-    clonedNode.style.opacity = '0';
-    clonedNode.style.pointerEvents = 'none';
+    clonedNode.style.left = '-9999px';
+    clonedNode.style.top = '0px';
 
     document.body.appendChild(clonedNode);
     
-    // Add a short delay to ensure the browser has time to render the cloned node and its assets
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
     try {
-      const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';
+      const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Belleza&display=swap';
       const fontCss = await fetch(fontUrl, {
         headers: {
           'User-Agent':
