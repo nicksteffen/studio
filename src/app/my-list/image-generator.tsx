@@ -17,9 +17,6 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
         left: '-9999px',
         width: '1080px',
         height: '1920px',
-        backgroundImage: 'linear-gradient(#e9e9e9 2px, transparent 2px), linear-gradient(90deg, #e9e9e9 2px, transparent 2px), linear-gradient(rgba(233,233,233,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(233,233,233,.6) 1px, transparent 1px)',
-        backgroundSize: '100px 100px, 100px 100px, 20px 20px, 20px 20px',
-        backgroundPosition: '-2px -2px, -2px -2px, -1px -1px, -1px -1px',
       }}
     >
       <div className="text-center mb-12">
@@ -28,11 +25,7 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
       
       <ul className="space-y-4 text-5xl text-gray-800 flex-grow">
         {items.slice(0, 30).map((item, index) => (
-          <li key={item.id} className="flex items-center relative py-2"
-              style={{
-                  background: 'repeating-linear-gradient(to bottom, transparent 0, transparent 65px, #9ac2c5 65px, #9ac2c5 67px)'
-              }}
-          >
+          <li key={item.id} className="flex items-center relative py-2">
             <span className="mr-6 text-gray-500">{index + 1}.</span>
             <span className={item.completed ? 'line-through text-gray-500' : ''}>
               {item.text}
