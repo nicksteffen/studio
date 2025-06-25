@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,48 +15,74 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { CreditCard, LogOut, Settings, User } from 'lucide-react';
+import { CreditCard, LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
-  // Placeholder for authentication state
-  const [user, setUser] = useState<{ name: string; email: string } | null>({ name: 'Olivia', email: 'olivia@example.com' });
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Check for user on initial load
+    async function getUser() {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+    }
+    getUser();
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
 
   if (!user) {
     return (
       <div className="flex items-center gap-2">
         <Button variant="ghost" asChild>
-          <Link href="#">Login</Link>
+          <Link href="/login">Login</Link>
         </Button>
         <Button asChild>
-          <Link href="#">Sign Up</Link>
+          <Link href="/login">Sign Up</Link>
         </Button>
       </div>
     );
   }
+
+  const userEmail = user.email || 'no-email@example.com';
+  const userName = user.user_metadata?.name || userEmail.split('@')[0];
+  const userAvatar = user.user_metadata?.avatar_url || `https://placehold.co/100x100.png`;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://placehold.co/100x100.png" alt={`@${user.name}`} data-ai-hint="woman face" />
-            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={userAvatar} alt={`@${userName}`} data-ai-hint="person face" />
+            <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{userName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              {userEmail}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
+            <UserIcon className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
           <DropdownMenuItem>
@@ -67,7 +95,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setUser(null)}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
