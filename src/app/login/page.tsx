@@ -26,7 +26,6 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       router.push('/my-list');
-      router.refresh();
     } catch (error: any) {
       setError(error.message);
     } finally {
