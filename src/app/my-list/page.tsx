@@ -8,14 +8,13 @@ import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { toPng } from 'html-to-image';
 import download from 'downloadjs';
-import { ImageGenerator } from './image-generator';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';
+import { generateListImageAction } from './actions';
 
 
 export default function MyListPage() {
@@ -26,10 +25,10 @@ export default function MyListPage() {
   const [user, setUser] = useState<User | null>(null);
   const [listId, setListId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const { toast } = useToast();
   const router = useRouter();
-  const imageGeneratorRef = useRef<HTMLDivElement>(null);
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -205,45 +204,34 @@ export default function MyListPage() {
   const progressValue = (completedCount / 30) * 100;
 
   const handleGenerateImage = async () => {
-    if (imageGeneratorRef.current === null) {
-      toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
+    if (!items || items.length === 0) {
+      toast({
+        title: 'Empty List',
+        description: 'Add some items to your list before generating an image.',
+        variant: 'destructive',
+      });
       return;
     }
-    
-    const elementToClone = imageGeneratorRef.current;
-    const clonedNode = elementToClone.cloneNode(true) as HTMLDivElement;
 
-    // Position the clone off-screen
-    clonedNode.style.position = 'fixed';
-    clonedNode.style.left = '-9999px';
-    clonedNode.style.top = '0px';
-
-    document.body.appendChild(clonedNode);
-    
+    setIsGeneratingImage(true);
     try {
-      const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Belleza&display=swap';
-      const fontCss = await fetch(fontUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-        },
-      }).then((res) => res.text());
+      const result = await generateListImageAction({ items });
 
-      const dataUrl = await toPng(clonedNode, {
-        cacheBust: true,
-        pixelRatio: 2,
-        fontEmbedCSS: fontCss,
-        width: 1080,
-        height: 1920,
-      });
+      if (result.error || !result.imageDataUri) {
+        throw new Error(result.error || 'Failed to generate image.');
+      }
 
-      download(dataUrl, 'my-before-30-list.png');
-      toast({ title: "Success!", description: "Your image has been downloaded." });
-    } catch (err) {
+      download(result.imageDataUri, 'my-before-30-list.png');
+      toast({ title: 'Success!', description: 'Your image has been downloaded.' });
+    } catch (err: any) {
       console.error(err);
-      toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
+      toast({
+        title: 'Error Generating Image',
+        description: err.message || 'Could not generate image. Please try again later.',
+        variant: 'destructive',
+      });
     } finally {
-        document.body.removeChild(clonedNode);
+      setIsGeneratingImage(false);
     }
   };
 
@@ -254,7 +242,6 @@ export default function MyListPage() {
 
   return (
     <>
-      <ImageGenerator ref={imageGeneratorRef} items={items} />
       <div className="container mx-auto max-w-3xl py-12 px-4">
         <div className="text-center mb-4">
           <h1 className="font-headline text-4xl font-bold tracking-tight text-primary">
@@ -269,8 +256,13 @@ export default function MyListPage() {
             <Button variant="outline" onClick={handleShareLink}>
                 <Share2 className="mr-2 h-4 w-4" /> Share Link
             </Button>
-            <Button onClick={handleGenerateImage}>
-                <ImageIcon className="mr-2 h-4 w-4" /> Generate Image
+            <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
+                {isGeneratingImage ? (
+                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                )}
+                {isGeneratingImage ? 'Generating...' : 'Generate Image'}
             </Button>
         </div>
 
