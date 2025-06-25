@@ -204,16 +204,33 @@ export default function MyListPage() {
 
   const handleGenerateImage = async () => {
     if (imageGeneratorRef.current === null) {
-        toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
-        return;
+      toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
+      return;
     }
     try {
-        const dataUrl = await toPng(imageGeneratorRef.current, { cacheBust: true, pixelRatio: 2 });
-        download(dataUrl, 'my-before-30-list.png');
-        toast({ title: "Success!", description: "Your image has been downloaded." });
+      // This is the key change: we fetch the font CSS and provide it to the library.
+      // This ensures the custom handwriting font is embedded into the generated image.
+      const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';
+      // The User-Agent header is important here. Google Fonts serves different CSS based on the user agent.
+      // We'll mimic a common browser to get the woff2 files.
+      const fontCss = await fetch(fontUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+        },
+      }).then((res) => res.text());
+
+      const dataUrl = await toPng(imageGeneratorRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        fontEmbedCSS: fontCss,
+      });
+
+      download(dataUrl, 'my-before-30-list.png');
+      toast({ title: "Success!", description: "Your image has been downloaded." });
     } catch (err) {
-        console.error(err);
-        toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
+      console.error(err);
+      toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
     }
   };
 
