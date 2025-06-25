@@ -207,6 +207,20 @@ export default function MyListPage() {
       toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
       return;
     }
+    
+    const elementToClone = imageGeneratorRef.current;
+    const clonedNode = elementToClone.cloneNode(true) as HTMLDivElement;
+
+    // Remove the off-screen positioning from the clone and hide it invisibly
+    clonedNode.style.position = 'fixed';
+    clonedNode.style.top = '0';
+    clonedNode.style.left = '0';
+    clonedNode.style.zIndex = '-1';
+    clonedNode.style.opacity = '0';
+    clonedNode.style.pointerEvents = 'none';
+
+    document.body.appendChild(clonedNode);
+
     try {
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap';
       const fontCss = await fetch(fontUrl, {
@@ -216,7 +230,7 @@ export default function MyListPage() {
         },
       }).then((res) => res.text());
 
-      const dataUrl = await toPng(imageGeneratorRef.current, {
+      const dataUrl = await toPng(clonedNode, {
         cacheBust: true,
         pixelRatio: 2,
         fontEmbedCSS: fontCss,
@@ -229,6 +243,8 @@ export default function MyListPage() {
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "Could not generate image. Please try again.", variant: "destructive" });
+    } finally {
+        document.body.removeChild(clonedNode);
     }
   };
 

@@ -17,6 +17,11 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
         left: '-9999px',
         width: '1080px',
         height: '1920px',
+        // This creates the yellow-lined paper effect.
+        backgroundImage:
+          'linear-gradient(to right, transparent 99px, #fca5a5 99px, #fca5a5 101px, transparent 101px), repeating-linear-gradient(to bottom, #fefae0, #fefae0 calc(1.5em - 1px), #a5b4fc 1.5em)',
+        backgroundSize: '100% 1.5em',
+        lineHeight: '1.5em',
       }}
     >
       <div className="text-center mb-12">
@@ -25,7 +30,7 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
       
       <ul className="space-y-4 text-5xl text-gray-800 flex-grow">
         {items.slice(0, 30).map((item, index) => (
-          <li key={item.id} className="flex items-center relative py-2">
+          <li key={item.id} className="flex items-center relative py-2 h-[1.5em] overflow-hidden">
             <span className="mr-6 text-gray-500">{index + 1}.</span>
             <span className={item.completed ? 'line-through text-gray-500' : ''}>
               {item.text}
