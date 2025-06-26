@@ -11,7 +11,7 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
   return (
     <div
       ref={ref}
-      className="font-handwriting bg-[#fefae0] p-20 flex flex-col"
+      className="font-handwriting bg-[#fefae0] p-16 flex flex-col"
       style={{
         position: 'absolute',
         left: '-9999px',
@@ -24,24 +24,24 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
         lineHeight: '1.5em',
       }}
     >
-      <div className="text-center mb-12">
-          <h1 className="text-8xl font-bold text-[#d4a373] font-headline">My 30 Before 30</h1>
+      <div className="text-center mb-8">
+          <h1 className="text-6xl font-bold text-[#d4a373] font-headline">My 30 Before 30</h1>
       </div>
       
-      <ul className="space-y-4 text-5xl text-gray-800 flex-grow">
+      <ul className="text-3xl text-gray-800 flex-grow">
         {items.slice(0, 30).map((item, index) => (
-          <li key={item.id} className="flex items-center relative py-2 h-[1.5em] overflow-hidden">
-            <span className="mr-6 text-gray-500">{index + 1}.</span>
+          <li key={item.id} className="flex items-center relative py-1 overflow-hidden">
+            <span className="mr-4 text-gray-500">{index + 1}.</span>
             <span className={item.completed ? 'line-through text-gray-500' : ''}>
               {item.text}
             </span>
-            {item.completed && <Check className="h-12 w-12 text-green-600 absolute right-4 top-1/2 -translate-y-1/2" />}
+            {item.completed && <Check className="h-8 w-8 text-green-600 absolute right-4 top-1/2 -translate-y-1/2" />}
           </li>
         ))}
       </ul>
       
-      <div className="text-center mt-12 flex items-center justify-center text-4xl text-[#d4a373]">
-         <Sprout className="h-10 w-10 mr-4" /> before30bucket.app
+      <div className="text-center mt-8 flex items-center justify-center text-2xl text-[#d4a373]">
+         <Sprout className="h-6 w-6 mr-3" /> before30bucket.app
       </div>
     </div>
   );
