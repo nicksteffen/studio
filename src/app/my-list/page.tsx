@@ -328,7 +328,8 @@ export default function MyListPage() {
                     className="group flex items-center p-2 rounded-lg transition-colors hover:bg-secondary"
                   >
                     <GripVertical className="h-5 w-5 mr-2 text-muted-foreground cursor-grab group-hover:text-foreground" />
-                    <button onClick={() => handleToggleComplete(item.id)} className="mr-3">
+                    <span className="w-6 text-sm text-muted-foreground font-mono text-right">{index + 1}.</span>
+                    <button onClick={() => handleToggleComplete(item.id)} className="ml-3 mr-3">
                       {item.completed ? <Check className="h-6 w-6 text-accent" /> : <Circle className="h-6 w-6 text-border" />}
                     </button>
 
@@ -367,7 +368,7 @@ export default function MyListPage() {
               ))}
 
             </div>
-            {items.length < 30 && (
+            {items.length < 40 && (
                 <div className="mt-6 pt-4 border-t border-dashed">
                     <div className="flex items-center gap-2">
                         <Input
