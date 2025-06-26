@@ -11,7 +11,7 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
   return (
     <div
       ref={ref}
-      className="font-handwriting bg-[#fefae0] p-16 flex flex-col"
+      className="font-handwriting bg-[#fefae0] p-12 flex flex-col"
       style={{
         position: 'absolute',
         left: '-9999px',
@@ -19,19 +19,19 @@ export const ImageGenerator = forwardRef<HTMLDivElement, ImageGeneratorProps>(({
         height: '1920px',
         // This creates the yellow-lined paper effect.
         backgroundImage:
-          'linear-gradient(to right, transparent 99px, #fca5a5 99px, #fca5a5 101px, transparent 101px), repeating-linear-gradient(to bottom, #fefae0, #fefae0 calc(1.5em - 1px), #a5b4fc 1.5em)',
-        backgroundSize: '100% 1.5em',
-        lineHeight: '1.5em',
+          'linear-gradient(to right, transparent 99px, #fca5a5 99px, #fca5a5 101px, transparent 101px), repeating-linear-gradient(to bottom, #fefae0, #fefae0 calc(48px - 1px), #a5b4fc 48px)',
+        backgroundSize: '100% 48px',
+        lineHeight: '48px',
       }}
     >
-      <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold text-[#d4a373] font-headline">My 30 Before 30</h1>
+      <div className="text-center mb-6">
+          <h1 className="text-5xl font-bold text-[#d4a373] font-headline">My 30 Before 30</h1>
       </div>
       
       <ul className="text-3xl text-gray-800 flex-grow">
         {items.slice(0, 30).map((item, index) => (
-          <li key={item.id} className="flex items-center relative py-1 overflow-hidden">
-            <span className="mr-4 text-gray-500">{index + 1}.</span>
+          <li key={item.id} className="flex items-center relative py-0 overflow-hidden">
+            <span className="mr-4 text-gray-500 w-10 text-right">{index + 1}.</span>
             <span className={item.completed ? 'line-through text-gray-500' : ''}>
               {item.text}
             </span>
