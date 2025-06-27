@@ -27,50 +27,20 @@ export default async function BrowsePage() {
     }
   );
 
-  // --- Start of new two-query logic ---
-
-  // 1. Fetch public lists and their authors
-  const { data: lists, error: listsError } = await supabase
+  const { data: communityLists, error } = await supabase
     .from('lists')
     .select(`
         id,
         title,
-        profiles ( username, avatar_url )
+        profiles ( username, avatar_url ),
+        list_items ( id, text, completed )
     `)
     .eq('is_public', true)
     .limit(9);
-
-  if (listsError) {
-    console.error("Error fetching community lists:", listsError);
+  
+  if (error) {
+    console.error("Error fetching community lists:", error);
   }
-
-  const listIds = lists?.map(l => l.id) ?? [];
-  let allItems: { id: string; text: string; completed: boolean; list_id: string }[] = [];
-
-  // 2. Fetch items for those lists if any lists were found
-  if (listIds.length > 0) {
-    const { data: itemsData, error: itemsError } = await supabase
-        .from('list_items')
-        .select('id, text, completed, list_id')
-        .in('list_id', listIds);
-    
-    if (itemsError) {
-        console.error("Error fetching list items:", itemsError);
-    } else {
-        allItems = itemsData || [];
-    }
-  }
-
-  // 3. Combine the data to match the expected structure for rendering
-  const communityLists: CommunityList[] = lists?.map(list => ({
-      id: list.id,
-      title: list.title,
-      profiles: list.profiles,
-      // The type assertion is needed because list_items is not directly selected with the list
-      list_items: allItems.filter(item => item.list_id === list.id)
-  })) || [];
-
-  // --- End of new logic ---
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -101,7 +71,7 @@ export default async function BrowsePage() {
         </div>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {communityLists!.map(list => (
+          {communityLists!.map((list: CommunityList) => (
             <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader>
                 <div className="flex items-center gap-4">
