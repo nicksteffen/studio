@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { CATEGORIES } from '@/lib/mock-data';
+import type { CommunityList } from '@/lib/types';
+import AddToListButton from './add-to-list-button';
+import { cn } from '@/lib/utils';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -24,15 +27,19 @@ export default async function BrowsePage() {
     }
   );
 
-  const { data: communityLists, error: listsError } = await supabase
+  const { data, error: listsError } = await supabase
     .from('lists')
     .select(`
         id,
         title,
-        profiles ( username, avatar_url )
+        profiles ( username, avatar_url ),
+        list_items ( id, text, completed )
     `)
     .eq('is_public', true)
     .limit(9);
+  
+  const communityLists: CommunityList[] = data || [];
+
 
   if (listsError) {
     console.error("Error fetching community lists:", listsError);
@@ -68,7 +75,7 @@ export default async function BrowsePage() {
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {communityLists!.map(list => (
-            <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader>
                 <div className="flex items-center gap-4">
                   <Avatar>
@@ -81,8 +88,22 @@ export default async function BrowsePage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground italic">List items will be shown here soon.</p>
+              <CardContent className="flex-grow">
+                 {list.list_items && list.list_items.length > 0 ? (
+                  <ul className="space-y-2 text-sm">
+                    {list.list_items.slice(0, 4).map(item => (
+                      <li key={item.id} className="flex items-center justify-between gap-2">
+                        <span className={cn("truncate", item.completed && "line-through text-muted-foreground")}>{item.text}</span>
+                        <AddToListButton itemText={item.text} />
+                      </li>
+                    ))}
+                    {list.list_items.length > 4 && (
+                        <li className="text-xs text-muted-foreground pt-1">...and {list.list_items.length - 4} more.</li>
+                    )}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">This list is empty.</p>
+                )}
               </CardContent>
             </Card>
           ))}
