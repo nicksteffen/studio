@@ -22,25 +22,59 @@ This project is configured to use Supabase for its database and authentication.
 2.  **Get API Credentials:** In your Supabase project dashboard, go to **Project Settings** > **API**. You will need two values:
     *   Project URL
     *   Project API Key (the `anon` `public` key)
-3.  **Database Schema:** Go to the **Table Editor** in your Supabase dashboard and create the necessary tables. Here are some suggested schemas:
+3.  **Database Schema:** Go to the **SQL Editor** in your Supabase dashboard and run the following SQL commands to create the necessary tables and policies.
 
-    *   **`users` table:** Supabase handles this automatically via its Auth service. You may want to add a `profiles` table to store public user data like `username` and `avatar_url`.
+    ```sql
+    -- USERS table is handled by Supabase Auth.
 
-    *   **`lists` table:**
-        *   `id` (uuid, primary key)
-        *   `user_id` (uuid, foreign key to `auth.users.id`)
-        *   `title` (text)
-        *   `is_public` (boolean, default `true`)
-        *   `created_at` (timestampz, default `now()`)
+    -- PROFILES table to store public user data
+    CREATE TABLE public.profiles (
+      id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+      username text,
+      avatar_url text
+    );
+    ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING ( true );
+    CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK ( auth.uid() = id );
+    CREATE POLICY "Users can update own profile." ON public.profiles FOR UPDATE USING ( auth.uid() = id );
+    -- After creating, go to Database > Replication and enable replication for `profiles`.
 
-    *   **`list_items` table:**
-        *   `id` (uuid, primary key)
-        *   `list_id` (uuid, foreign key to `lists.id`)
-        *   `text` (text)
-        *   `category` (text)
-        *   `completed` (boolean, default `false`)
-        *   `position` (integer, for ordering)
-        *   `created_at` (timestampz, default `now()`)
+
+    -- LISTS table
+    CREATE TABLE public.lists (
+      id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+      title text,
+      is_public boolean NOT NULL DEFAULT true,
+      created_at timestamp with time zone NOT NULL DEFAULT now()
+    );
+    ALTER TABLE public.lists ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "Users can see public lists." ON public.lists FOR SELECT USING ( is_public = true );
+    CREATE POLICY "Users can view their own lists." ON public.lists FOR SELECT USING ( auth.uid() = user_id );
+    CREATE POLICY "Users can insert their own lists." ON public.lists FOR INSERT WITH CHECK ( auth.uid() = user_id );
+    CREATE POLICY "Users can update their own lists." ON public.lists FOR UPDATE USING ( auth.uid() = user_id );
+
+    -- LIST ITEMS table
+    CREATE TABLE public.list_items (
+      id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+      list_id uuid NOT NULL REFERENCES public.lists(id) ON DELETE CASCADE,
+      user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+      text text,
+      category text,
+      completed boolean NOT NULL DEFAULT false,
+      "position" integer,
+      created_at timestamp with time zone NOT NULL DEFAULT now()
+    );
+    ALTER TABLE public.list_items ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "Users can view items on lists they can see." ON public.list_items FOR SELECT USING (
+      EXISTS (
+        SELECT 1 FROM lists WHERE lists.id = list_items.list_id
+      )
+    );
+    CREATE POLICY "Users can insert their own list items." ON public.list_items FOR INSERT WITH CHECK ( auth.uid() = user_id );
+    CREATE POLICY "Users can update their own list items." ON public.list_items FOR UPDATE USING ( auth.uid() = user_id );
+    CREATE POLICY "Users can delete their own list items." ON public.list_items FOR DELETE USING ( auth.uid() = user_id );
+    ```
 
 ### 3. Configure Environment Variables
 
@@ -59,7 +93,13 @@ GOOGLE_API_KEY=YOUR_GOOGLE_GEMINI_API_KEY
 
 You can get a Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-### 4. Run the Development Server
+### 4. Populate with Sample Data (Optional)
+
+To see content on the "Browse" page immediately, you can add sample data.
+1. Use the Sign Up page in the app to create 2-3 sample user accounts.
+2. Follow the instructions in the `sample-data.sql` file in the root of this project to populate their lists.
+
+### 5. Run the Development Server
 
 Now you can start the development server:
 
@@ -68,13 +108,6 @@ npm run dev
 ```
 
 Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
-
-### 5. Connecting the UI to Supabase
-
-The current application uses mock data. You will need to replace the mock data fetching with calls to your Supabase backend. This involves:
-*   Creating a Supabase client (`/lib/supabase.ts`).
-*   Updating pages like `/my-list`, `/browse` to fetch and mutate data using the client.
-*   Implementing the logic in `/components/user-nav.tsx` for actual user login, signup, and logout.
 
 ## Monetization Setup
 

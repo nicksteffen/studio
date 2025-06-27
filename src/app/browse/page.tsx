@@ -1,11 +1,50 @@
-import { sampleCommunityLists, CATEGORIES } from '@/lib/mock-data';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, ListPlus, Search } from 'lucide-react';
+import { CheckCircle, Search } from 'lucide-react';
+import type { CommunityList } from '@/lib/types';
+import { CATEGORIES } from '@/lib/mock-data';
+import AddToListButton from './add-to-list-button';
 
-export default function BrowsePage() {
+export const revalidate = 60; // Revalidate every 60 seconds
+
+export default async function BrowsePage() {
+  const cookieStore = cookies()
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  );
+
+  const { data, error } = await supabase
+    .from('lists')
+    .select(`
+        id,
+        title,
+        profiles ( username, avatar_url ),
+        list_items ( id, text, completed )
+    `)
+    .eq('is_public', true)
+    .limit(9);
+
+  if (error) {
+    console.error("Error fetching community lists:", error);
+    // You could return a dedicated error component here
+  }
+
+  const communityLists: CommunityList[] = data || [];
+
+
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="text-center mb-8">
@@ -29,40 +68,43 @@ export default function BrowsePage() {
         </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {sampleCommunityLists.map(list => (
-          <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <Avatar>
-                  <AvatarImage src={list.userAvatar} data-ai-hint="person portrait" />
-                  <AvatarFallback>{list.userName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="font-headline text-lg">{list.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">by {list.userName}</p>
+      {communityLists.length === 0 ? (
+        <div className="text-center py-12">
+            <p className="text-muted-foreground">No public lists found yet. Be the first to make your list public!</p>
+        </div>
+      ) : (
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {communityLists.map(list => (
+            <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <Avatar>
+                    <AvatarImage src={list.profiles?.avatar_url ?? undefined} data-ai-hint="person portrait" />
+                    <AvatarFallback>{list.profiles?.username?.charAt(0) ?? '?'}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="font-headline text-lg">{list.title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">by {list.profiles?.username ?? 'Anonymous'}</p>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {list.items.map(item => (
-                  <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                        <CheckCircle className={`h-4 w-4 ${item.completed ? 'text-accent' : 'text-border'}`} />
-                        <span className={item.completed ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                      <ListPlus className="h-4 w-4" />
-                      <span className="sr-only">Add to my list</span>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {list.list_items.map(item => (
+                    <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                          <CheckCircle className={`h-4 w-4 ${item.completed ? 'text-accent' : 'text-border'}`} />
+                          <span className={item.completed ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
+                      </div>
+                      <AddToListButton itemText={item.text} />
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

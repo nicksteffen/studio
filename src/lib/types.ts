@@ -20,6 +20,20 @@ export type UserList = {
   items: ListItem[];
 };
 
+export type CommunityList = {
+  id: string;
+  title: string | null;
+  profiles: {
+      username: string | null;
+      avatar_url: string | null;
+  } | null;
+  list_items: {
+      id: string;
+      text: string;
+      completed: boolean;
+  }[];
+}
+
 export type AffiliateItem = {
   id: string;
   title: string;
