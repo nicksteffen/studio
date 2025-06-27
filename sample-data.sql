@@ -1,151 +1,196 @@
--- This script sets up the entire database schema, including tables,
--- custom types, and row-level security policies. It also populates the
--- database with sample data for two users, Ben and Jessica.
--- It is designed to be idempotent, meaning it can be run multiple times
--- without causing errors.
-
--- 1. Create a custom ENUM type for list item categories if it doesn't exist.
--- This defines a set of allowed values for the 'category' column.
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'list_item_category') THEN
-        CREATE TYPE public.list_item_category AS ENUM (
-            'Travel',
-            'Food',
-            'Adventure',
-            'Skills',
-            'Wellness',
-            'Creative',
-            'Community',
-            'Finance',
-            'Career',
-            'Other'
-        );
-    END IF;
-END$$;
+-- 1. Create the custom category type if it doesn't exist
+-- Using a temporary function to handle CREATE TYPE IF NOT EXISTS logic
+do $$ begin
+  if not exists (select 1 from pg_type where typname = 'list_item_category') then
+    create type public.list_item_category as enum ('Travel', 'Food', 'Adventure', 'Skills', 'Wellness', 'Creative', 'Community', 'Finance', 'Career', 'Other');
+  end if;
+end $$;
 
 
--- 2. Create the profiles table if it doesn't exist.
--- This table stores public user data and is linked to auth.users.
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  username text UNIQUE,
+-- 2. Create the profiles table if it doesn't exist
+create table if not exists public.profiles (
+  id uuid not null primary key,
+  updated_at timestamp with time zone,
+  username text unique,
   avatar_url text,
-  updated_at timestamptz,
-  CONSTRAINT username_length CHECK (char_length(username) >= 3)
+  constraint username_length check (char_length(username) >= 3)
+);
+-- Set up foreign key from auth.users to profiles
+alter table public.profiles add constraint "profiles_id_fkey" foreign key (id) references auth.users (id) on delete cascade;
+
+
+-- 3. Create the lists table if it doesn't exist
+create table if not exists public.lists (
+  id uuid not null default gen_random_uuid() primary key,
+  user_id uuid not null,
+  title text not null,
+  is_public boolean not null default false,
+  created_at timestamp with time zone not null default now()
+);
+-- Set up foreign key from lists to profiles
+alter table public.lists add constraint "lists_user_id_fkey" foreign key (user_id) references public.profiles (id) on delete cascade;
+
+
+-- 4. Create the list_items table if it doesn't exist
+create table if not exists public.list_items (
+  id uuid not null default gen_random_uuid() primary key,
+  list_id uuid not null,
+  user_id uuid not null,
+  text text not null,
+  completed boolean not null default false,
+  category public.list_item_category not null default 'Other'::list_item_category,
+  position integer not null default 0,
+  created_at timestamp with time zone not null default now()
+);
+-- Set up foreign keys from list_items to lists and profiles
+alter table public.list_items add constraint "list_items_list_id_fkey" foreign key (list_id) references public.lists (id) on delete cascade;
+alter table public.list_items add constraint "list_items_user_id_fkey" foreign key (user_id) references public.profiles (id) on delete cascade;
+
+
+-- 5. Set up Storage security policies
+-- This is a generic policy. You might want to restrict it further based on your app's needs.
+-- For example, you might want to only allow authenticated users to upload avatars.
+-- See https://supabase.com/docs/guides/storage/security/access-control
+drop policy if exists "Avatar images are publicly accessible." on storage.objects;
+create policy "Avatar images are publicly accessible." on storage.objects for select using (bucket_id = 'avatars');
+
+drop policy if exists "Anyone can upload an avatar." on storage.objects;
+create policy "Anyone can upload an avatar." on storage.objects for insert with check (bucket_id = 'avatars');
+
+
+-- 6. Function to automatically create a profile for new users
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, username)
+  values (new.id, new.email);
+  return new;
+end;
+$$;
+
+-- 7. Trigger to call the function when a new user signs up
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+
+-- 8. Enable Row Level Security (RLS)
+alter table public.profiles enable row level security;
+alter table public.lists enable row level security;
+alter table public.list_items enable row level security;
+
+-- 9. Create RLS policies
+
+-- PROFILES
+drop policy if exists "Public profiles are viewable by everyone." on public.profiles;
+create policy "Public profiles are viewable by everyone." on public.profiles for select using (true);
+
+drop policy if exists "Users can insert their own profile." on public.profiles;
+create policy "Users can insert their own profile." on public.profiles for insert with check (auth.uid() = id);
+
+drop policy if exists "Users can update their own profile." on public.profiles;
+create policy "Users can update their own profile." on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
+
+
+-- LISTS
+drop policy if exists "Public lists are viewable by everyone." on public.lists;
+create policy "Public lists are viewable by everyone." on public.lists for select using (is_public = true);
+
+drop policy if exists "Users can view their own private lists." on public.lists;
+create policy "Users can view their own private lists." on public.lists for select using (auth.uid() = user_id);
+
+drop policy if exists "Users can create their own lists." on public.lists;
+create policy "Users can create their own lists." on public.lists for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own lists." on public.lists;
+create policy "Users can update their own lists." on public.lists for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their own lists." on public.lists;
+create policy "Users can delete their own lists." on public.lists for delete using (auth.uid() = user_id);
+
+
+-- LIST ITEMS --
+-- Remove old, potentially problematic policy first
+drop policy if exists "Users can view items on lists they can see." on public.list_items;
+
+-- New, more robust SELECT policies
+drop policy if exists "Public list items are viewable by everyone." on public.list_items;
+create policy "Public list items are viewable by everyone." on public.list_items for select using (
+  (select is_public from public.lists where id = list_id) = true
 );
 
-
--- 3. Create the lists table if it doesn't exist.
--- This table stores the main list information for each user.
-CREATE TABLE IF NOT EXISTS public.lists (
-    id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    title text,
-    is_public boolean NOT NULL DEFAULT false,
-    created_at timestamptz NOT NULL DEFAULT now()
-);
+drop policy if exists "Users can view their own list items." on public.list_items;
+create policy "Users can view their own list items." on public.list_items for select using (auth.uid() = user_id);
 
 
--- 4. Create the list_items table if it doesn't exist.
--- This table stores individual items for each list.
-CREATE TABLE IF NOT EXISTS public.list_items (
-    id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    list_id uuid NOT NULL REFERENCES public.lists(id) ON DELETE CASCADE,
-    text text,
-    completed boolean NOT NULL DEFAULT false,
-    -- Use the custom category type with a default value
-    category public.list_item_category NOT NULL DEFAULT 'Other'::list_item_category,
-    position integer NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now()
-);
+-- Other list_items policies
+drop policy if exists "Users can insert items into their own lists." on public.list_items;
+create policy "Users can insert items into their own lists." on public.list_items for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own list items." on public.list_items;
+create policy "Users can update their own list items." on public.list_items for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their own list items." on public.list_items;
+create policy "Users can delete their own list items." on public.list_items for delete using (auth.uid() = user_id);
 
 
--- 5. Set up Row Level Security (RLS) for all tables.
--- These policies ensure that users can only access and modify their own data,
--- except for data that is explicitly marked as public.
+/******** SAMPLE DATA ********/
+-- Instructions:
+-- 1. Sign up a few users in your application (e.g. for "Jessica" and "Ben").
+-- 2. Get their User IDs from the Supabase Dashboard (Authentication -> Users).
+-- 3. Replace the placeholder UUIDs below with the actual User IDs.
+-- 4. Run this entire script in the Supabase SQL Editor.
 
--- RLS for Profiles
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
-CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
-CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
-CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+-- Clear old sample data to prevent duplicates
+delete from public.lists where user_id in ('bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', '74e6ea39-1011-4f77-b15a-709b33963a94');
 
--- RLS for Lists
-ALTER TABLE public.lists ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view their own lists." ON public.lists;
-CREATE POLICY "Users can view their own lists." ON public.lists FOR SELECT USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Public lists are viewable by everyone." ON public.lists;
-CREATE POLICY "Public lists are viewable by everyone." ON public.lists FOR SELECT USING (is_public = true);
-DROP POLICY IF EXISTS "Users can insert their own lists." ON public.lists;
-CREATE POLICY "Users can insert their own lists." ON public.lists FOR INSERT WITH CHECK (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can update their own lists." ON public.lists;
-CREATE POLICY "Users can update their own lists." ON public.lists FOR UPDATE USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can delete their own lists." ON public.lists;
-CREATE POLICY "Users can delete their own lists." ON public.lists FOR DELETE USING (auth.uid() = user_id);
+-- Update profile usernames
+UPDATE public.profiles
+SET username = 'Ben H.'
+WHERE id = 'bf9e9dd1-0257-4e05-a83c-cd0d043ef47b';
 
--- RLS for List Items
-ALTER TABLE public.list_items ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view their own list items." ON public.list_items;
-CREATE POLICY "Users can view their own list items." ON public.list_items FOR SELECT USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can view items from public lists." ON public.list_items;
-CREATE POLICY "Users can view items from public lists." ON public.list_items FOR SELECT USING (
-    (list_id IN ( SELECT id FROM public.lists WHERE is_public = true ))
-);
-DROP POLICY IF EXISTS "Users can insert their own list items." ON public.list_items;
-CREATE POLICY "Users can insert their own list items." ON public.list_items FOR INSERT WITH CHECK (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can update their own list items." ON public.list_items;
-CREATE POLICY "Users can update their own list items." ON public.list_items FOR UPDATE USING (auth.uid() = user_id);
-DROP POLICY IF EXISTS "Users can delete their own list items." ON public.list_items;
-CREATE POLICY "Users can delete their own list items." ON public.list_items FOR DELETE USING (auth.uid() = user_id);
+UPDATE public.profiles
+SET username = 'Jessica L.'
+WHERE id = '74e6ea39-1011-4f77-b15a-709b33963a94';
 
 
--- 6. Insert sample data for your users.
--- This part uses the user IDs you provided for Ben and Jessica.
-
--- Clear previous sample data to avoid duplicates.
-DELETE FROM public.lists WHERE user_id IN ('bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', '74e6ea39-1011-4f77-b15a-709b33963a94');
-DELETE FROM public.profiles WHERE id IN ('bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', '74e6ea39-1011-4f77-b15a-709b33963a94');
-
--- Insert profiles
-INSERT INTO public.profiles (id, username, avatar_url, updated_at)
-VALUES
-  ('bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', 'Ben H.', 'https://placehold.co/100x100.png', now()),
-  ('74e6ea39-1011-4f77-b15a-709b33963a94', 'Jessica L.', 'https://placehold.co/100x100.png', now());
-
--- Insert lists for users
-WITH user_lists AS (
-  INSERT INTO public.lists (user_id, title, is_public)
-  VALUES
-    ('bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', 'Ben''s Growth & Goals List', true),
-    ('74e6ea39-1011-4f77-b15a-709b33963a94', 'Jessica''s Adventures Before 30', true)
-  RETURNING id, user_id
+-- Insert sample lists and list items
+-- Ben's list (public)
+with list_insert as (
+  insert into public.lists (user_id, title, is_public)
+  values ('bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', 'My Growth & Goals List', true)
+  returning id
 )
--- Insert list items for Jessica
-, jessica_items (text, completed, category, position) AS (
-  VALUES
-    ('Hike the Inca Trail to Machu Picchu', true, 'Adventure'::public.list_item_category, 0),
-    ('Take a cooking class in Thailand', false, 'Food'::public.list_item_category, 1),
-    ('See the Northern Lights', false, 'Travel'::public.list_item_category, 2)
+insert into public.list_items (list_id, user_id, text, completed, category, position)
+select id, 'bf9e9dd1-0257-4e05-a83c-cd0d043ef47b', item.text, item.completed, item.category::public.list_item_category, item.position
+from list_insert,
+(
+  values
+    ('Get a professional certification', true, 'Career', 0),
+    ('Read 50 books in one year', true, 'Skills', 1),
+    ('Start a side hustle', false, 'Finance', 2),
+    ('Learn to play guitar', false, 'Creative', 3),
+    ('Run a 10k race', true, 'Wellness', 4)
+) as item(text, completed, category, position);
+
+-- Jessica's list (public)
+with list_insert as (
+  insert into public.lists (user_id, title, is_public)
+  values ('74e6ea39-1011-4f77-b15a-709b33963a94', 'Jessica''s Adventures Before 30', true)
+  returning id
 )
-, jessica_inserts AS (
-  INSERT INTO public.list_items (list_id, user_id, text, completed, category, position)
-  SELECT ul.id, ul.user_id, item.text, item.completed, item.category, item.position
-  FROM user_lists ul, jessica_items item
-  WHERE ul.user_id = '74e6ea39-1011-4f77-b15a-709b33963a94'
-)
--- Insert list items for Ben
-, ben_items (text, completed, category, position) AS (
-  VALUES
-    ('Get a professional certification', true, 'Career'::public.list_item_category, 0),
-    ('Read 50 books in one year', true, 'Skills'::public.list_item_category, 1),
-    ('Start a side hustle', false, 'Finance'::public.list_item_category, 2)
-)
-INSERT INTO public.list_items (list_id, user_id, text, completed, category, position)
-SELECT ul.id, ul.user_id, item.text, item.completed, item.category, item.position
-FROM user_lists ul, ben_items item
-WHERE ul.user_id = 'bf9e9dd1-0257-4e05-a83c-cd0d043ef47b';
+insert into public.list_items (list_id, user_id, text, completed, category, position)
+select id, '74e6ea39-1011-4f77-b15a-709b33963a94', item.text, item.completed, item.category::public.list_item_category, item.position
+from list_insert,
+(
+  values
+    ('Hike the Inca Trail to Machu Picchu', true, 'Adventure', 0),
+    ('Take a cooking class in Thailand', false, 'Food', 1),
+    ('See the Northern Lights in Iceland', false, 'Travel', 2),
+    ('Go on a solo trip', true, 'Travel', 3),
+    ('Learn to surf in Bali', false, 'Adventure', 4)
+) as item(text, completed, category, position);
