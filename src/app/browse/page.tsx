@@ -4,10 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Search } from 'lucide-react';
-import type { CommunityList } from '@/lib/types';
+import { Search } from 'lucide-react';
 import { CATEGORIES } from '@/lib/mock-data';
-import AddToListButton from './add-to-list-button';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -26,10 +24,7 @@ export default async function BrowsePage() {
     }
   );
 
-  // --- START OF CHANGES ---
-
-  // 1. Fetch public lists and their associated profiles
-  const { data: lists, error: listsError } = await supabase
+  const { data: communityLists, error: listsError } = await supabase
     .from('lists')
     .select(`
         id,
@@ -41,41 +36,7 @@ export default async function BrowsePage() {
 
   if (listsError) {
     console.error("Error fetching community lists:", listsError);
-    // In a real app, you'd want to show an error component here
   }
-  
-  const communityListsData = lists || [];
-  let communityLists: CommunityList[] = [];
-
-  if (communityListsData.length > 0) {
-    // 2. Fetch all items for the lists we found
-    const listIds = communityListsData.map(list => list.id);
-    const { data: listItems, error: itemsError } = await supabase
-      .from('list_items')
-      .select('id, text, completed, list_id')
-      .in('list_id', listIds)
-      .order('position', { ascending: true });
-
-    if (itemsError) {
-      console.error("Error fetching list items:", itemsError);
-    }
-
-    // 3. Combine the lists and their items
-    const itemsByListId = (listItems || []).reduce((acc, item) => {
-      if (!acc[item.list_id]) {
-        acc[item.list_id] = [];
-      }
-      acc[item.list_id].push(item);
-      return acc;
-    }, {} as Record<string, { id: string; text: string; completed: boolean; }[]>);
-    
-    communityLists = communityListsData.map(list => ({
-      ...list,
-      list_items: itemsByListId[list.id] || []
-    }));
-  }
-  // --- END OF CHANGES ---
-
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -100,13 +61,13 @@ export default async function BrowsePage() {
         </div>
       </div>
 
-      {communityLists.length === 0 ? (
+      {(communityLists?.length ?? 0) === 0 ? (
         <div className="text-center py-12">
             <p className="text-muted-foreground">No public lists found yet. Be the first to make your list public!</p>
         </div>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {communityLists.map(list => (
+          {communityLists!.map(list => (
             <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
                 <div className="flex items-center gap-4">
@@ -121,17 +82,7 @@ export default async function BrowsePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-3">
-                  {list.list_items.map(item => (
-                    <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
-                      <div className="flex items-center gap-2">
-                          <CheckCircle className={`h-4 w-4 ${item.completed ? 'text-accent' : 'text-border'}`} />
-                          <span className={item.completed ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
-                      </div>
-                      <AddToListButton itemText={item.text} />
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-sm text-muted-foreground italic">List items will be shown here soon.</p>
               </CardContent>
             </Card>
           ))}
