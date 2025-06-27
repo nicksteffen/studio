@@ -25,15 +25,6 @@ export function UserNav() {
 
   useEffect(() => {
     const fetchUserAndProfile = async (user: User) => {
-      // Check if profiles table exists before querying
-      const { data: tableData, error: tableError } = await supabase
-        .rpc('table_exists', { table_name: 'profiles' });
-
-      if (tableError || !tableData) {
-        console.warn("Could not check for profiles table or it doesn't exist. Skipping profile fetch.");
-        return;
-      }
-
       const { data } = await supabase
         .from('profiles')
         .select('username, avatar_url')
@@ -51,10 +42,11 @@ export function UserNav() {
       }
     });
 
+    // Check for user on initial load
     async function getInitialSession() {
         const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
         if (session?.user) {
-          setUser(session.user);
           fetchUserAndProfile(session.user);
         }
     }
