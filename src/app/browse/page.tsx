@@ -26,23 +26,55 @@ export default async function BrowsePage() {
     }
   );
 
-  const { data, error } = await supabase
+  // --- START OF CHANGES ---
+
+  // 1. Fetch public lists and their associated profiles
+  const { data: lists, error: listsError } = await supabase
     .from('lists')
     .select(`
         id,
         title,
-        profiles ( username, avatar_url ),
-        list_items ( id, text, completed )
+        profiles ( username, avatar_url )
     `)
     .eq('is_public', true)
     .limit(9);
 
-  if (error) {
-    console.error("Error fetching community lists:", error);
-    // You could return a dedicated error component here
+  if (listsError) {
+    console.error("Error fetching community lists:", listsError);
+    // In a real app, you'd want to show an error component here
   }
+  
+  const communityListsData = lists || [];
+  let communityLists: CommunityList[] = [];
 
-  const communityLists: CommunityList[] = data || [];
+  if (communityListsData.length > 0) {
+    // 2. Fetch all items for the lists we found
+    const listIds = communityListsData.map(list => list.id);
+    const { data: listItems, error: itemsError } = await supabase
+      .from('list_items')
+      .select('id, text, completed, list_id')
+      .in('list_id', listIds)
+      .order('position', { ascending: true });
+
+    if (itemsError) {
+      console.error("Error fetching list items:", itemsError);
+    }
+
+    // 3. Combine the lists and their items
+    const itemsByListId = (listItems || []).reduce((acc, item) => {
+      if (!acc[item.list_id]) {
+        acc[item.list_id] = [];
+      }
+      acc[item.list_id].push(item);
+      return acc;
+    }, {} as Record<string, { id: string; text: string; completed: boolean; }[]>);
+    
+    communityLists = communityListsData.map(list => ({
+      ...list,
+      list_items: itemsByListId[list.id] || []
+    }));
+  }
+  // --- END OF CHANGES ---
 
 
   return (
