@@ -20,19 +20,37 @@ import { useRouter } from 'next/navigation';
 
 export function UserNav() {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<{ username: string | null; avatar_url: string | null } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    const fetchUserAndProfile = async (user: User) => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single();
+      setProfile(data);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserAndProfile(session.user);
+      } else {
+        setProfile(null);
+      }
     });
 
     // Check for user on initial load
-    async function getUser() {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+    async function getInitialSession() {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchUserAndProfile(session.user);
+        }
     }
-    getUser();
+    getInitialSession();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -57,8 +75,8 @@ export function UserNav() {
   }
 
   const userEmail = user.email || 'no-email@example.com';
-  const userName = user.user_metadata?.name || userEmail.split('@')[0];
-  const userAvatar = user.user_metadata?.avatar_url || `https://placehold.co/100x100.png`;
+  const userName = profile?.username || user.user_metadata?.name || userEmail.split('@')[0];
+  const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || `https://placehold.co/100x100.png`;
 
   return (
     <DropdownMenu>
@@ -81,9 +99,11 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+          <DropdownMenuItem asChild>
+            <Link href="/profile">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
