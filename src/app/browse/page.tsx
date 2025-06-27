@@ -27,23 +27,50 @@ export default async function BrowsePage() {
     }
   );
 
-  const { data, error: listsError } = await supabase
+  // --- Start of new two-query logic ---
+
+  // 1. Fetch public lists and their authors
+  const { data: lists, error: listsError } = await supabase
     .from('lists')
     .select(`
         id,
         title,
-        profiles ( username, avatar_url ),
-        list_items ( id, text, completed )
+        profiles ( username, avatar_url )
     `)
     .eq('is_public', true)
     .limit(9);
-  
-  const communityLists: CommunityList[] = data || [];
-
 
   if (listsError) {
     console.error("Error fetching community lists:", listsError);
   }
+
+  const listIds = lists?.map(l => l.id) ?? [];
+  let allItems: { id: string; text: string; completed: boolean; list_id: string }[] = [];
+
+  // 2. Fetch items for those lists if any lists were found
+  if (listIds.length > 0) {
+    const { data: itemsData, error: itemsError } = await supabase
+        .from('list_items')
+        .select('id, text, completed, list_id')
+        .in('list_id', listIds);
+    
+    if (itemsError) {
+        console.error("Error fetching list items:", itemsError);
+    } else {
+        allItems = itemsData || [];
+    }
+  }
+
+  // 3. Combine the data to match the expected structure for rendering
+  const communityLists: CommunityList[] = lists?.map(list => ({
+      id: list.id,
+      title: list.title,
+      profiles: list.profiles,
+      // The type assertion is needed because list_items is not directly selected with the list
+      list_items: allItems.filter(item => item.list_id === list.id)
+  })) || [];
+
+  // --- End of new logic ---
 
   return (
     <div className="container mx-auto py-12 px-4">
