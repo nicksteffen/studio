@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 type AddItemState = {
     message: string;
@@ -18,7 +18,7 @@ export async function addItemFromCommunity(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = createSupabaseServerClient();
+  const supabase = createClient();
 
   const validatedFields = addItemSchema.safeParse({
     itemText: formData.get('itemText'),
