@@ -7,14 +7,14 @@ export const revalidate = 60; // Revalidate every 60 seconds
 export default async function BrowsePage() {
   const supabase = createClient();
 
-  // 1. Fetch public lists and their authors using a strict inner join
-  // to ensure we only get lists with a valid profile.
+  // 1. Fetch public lists and their authors. Using a wildcard `*` to see if
+  // this resolves the issue of avatar_url being null.
   const { data: lists, error: listsError } = await supabase
     .from('lists')
     .select(`
         id,
         title,
-        profiles!inner ( username, avatar_url )
+        profiles ( * )
     `)
     .eq('is_public', true)
     .limit(20);
