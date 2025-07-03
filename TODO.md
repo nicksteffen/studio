@@ -15,3 +15,6 @@
     - should have a user name and an email field
     - on sign up/ first sign in direct users to profile page
     - allow uploads of images for profile
+## Strategy questions:
+ - how to handle public lists? I want non logged in users to see lists for seo, but what should be shown?
+ 

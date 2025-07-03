@@ -2,8 +2,16 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CheckCircle, Heart, Share2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const {data: serverUser } = await supabase.auth.getUser();
+  console.log("index page, check user")
+  console.log(`found user : ${!!serverUser}`)
+  console.log(`Full user: `);
+  console.log(serverUser)
+
   return (
     <div className="flex flex-col">
       <section className="w-full py-20 md:py-32 lg:py-40 bg-gradient-to-br from-background to-secondary">
@@ -14,6 +22,7 @@ export default function Home() {
                 <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-primary">
                   Your life's to-do list, before the big 3-0.
                 </h1>
+                {/* <h1> {{ serverUser }} </h1> */}
                 <p className="max-w-[600px] text-foreground/80 md:text-xl">
                   Don't let your twenties just fly by. Create your ultimate "30 Before 30" bucket list, find inspiration from a global community, and start living your adventures.
                 </p>

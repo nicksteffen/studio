@@ -11,7 +11,8 @@ const loginSchema = z.object({
 })
 
 export async function login(formData: FormData) {
-  const supabase = createClient()
+  console.log("action login")
+  const supabase = await createClient()
 
   const validatedFields = loginSchema.safeParse(Object.fromEntries(formData.entries()))
 
@@ -25,6 +26,10 @@ export async function login(formData: FormData) {
     email,
     password,
   })
+  // console.log(`sign in attempt with ${email}  :   ${password}`)
+  // console.log("immediate get user")
+  // const {data: user} = await supabase.auth.getUser()
+  // console.log(`found user : ${user}`)
 
   if (error) {
     console.error('Login error:', error.message)
@@ -33,4 +38,5 @@ export async function login(formData: FormData) {
 
   revalidatePath('/', 'layout')
   redirect('/my-list')
+  // redirect('/test')
 }

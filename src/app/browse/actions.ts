@@ -18,7 +18,7 @@ export async function addItemFromCommunity(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const validatedFields = addItemSchema.safeParse({
     itemText: formData.get('itemText'),

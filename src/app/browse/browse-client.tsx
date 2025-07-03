@@ -10,13 +10,17 @@ import { CATEGORIES } from '@/lib/mock-data';
 import type { CommunityList } from '@/lib/types';
 import AddToListButton from './add-to-list-button';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 interface BrowseClientPageProps {
     initialLists: CommunityList[];
     error?: string | null;
+    loggedIn : boolean;
 }
 
-export default function BrowseClientPage({ initialLists, error }: BrowseClientPageProps) {
+export default function BrowseClientPage({ initialLists, error, loggedIn}: BrowseClientPageProps) {
+
+  const user = false;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -72,7 +76,18 @@ export default function BrowseClientPage({ initialLists, error }: BrowseClientPa
         </div>
       )}
 
+      {/* {!error && (communityLists.length === 0 && !searchTerm && !user) ? (
+        <div className="text-center py-12">
+            <p className="text-muted-foreground">You must be logged in to see community lists.</p>
+        </div>
+      ) : null} */}
+
       {!error && (communityLists.length === 0 && !searchTerm) ? (
+        // !user ? (
+        //   <div className="text-center py-12">
+        //     <p className="text-muted-foreground">You must be logged in to see community lists.</p>
+        //   </div>
+        // ) :
         <div className="text-center py-12">
             <p className="text-muted-foreground">No public lists found yet. Be the first to make your list public!</p>
         </div>

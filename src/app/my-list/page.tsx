@@ -4,11 +4,14 @@ import MyListClient from './my-list-client';
 import type { ListItem } from '@/lib/types';
 
 export default async function MyListPage() {
-  const supabase = createClient();
+    console.log("list page")
+  const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data:  { user }  } = await supabase.auth.getUser();
+  console.log(user)
 
   if (!user) {
+    console.log("couldnt find user")
     redirect('/login');
   }
 

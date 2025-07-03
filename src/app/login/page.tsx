@@ -5,11 +5,20 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { login } from './actions'
 
-export default function LoginPage({
-  searchParams,
+// interface SearchParams {
+//   message: string
+// }
+
+// export default function LoginPage({searchParams} : SearchParams}) {
+//   const {message : string } = await searchParams;
+
+
+export default async function LoginPage({
+  searchparams,
 }: {
-  searchParams: { message: string }
+  searchparams: { message: string }
 }) {
+  const searchParams = await searchparams;
   return (
     <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm shadow-2xl">

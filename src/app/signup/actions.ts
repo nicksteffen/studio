@@ -11,7 +11,7 @@ const signupSchema = z.object({
 })
 
 export async function signup(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const validatedFields = signupSchema.safeParse(Object.fromEntries(formData.entries()));
 

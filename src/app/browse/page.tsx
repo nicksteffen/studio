@@ -5,7 +5,9 @@ import BrowseClientPage from './browse-client';
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function BrowsePage() {
-  const supabase = createClient();
+  const supabase = await createClient();
+
+  const {data: {user} } = await supabase.auth.getUser();
 
   // 1. Fetch public lists and their authors.
   const { data: lists, error: listsError } = await supabase
@@ -17,12 +19,13 @@ export default async function BrowsePage() {
         profiles ( username, avatar_url )
     `)
     .eq('is_public', true)
-    .not('profiles', 'is', null) // Only get lists with a valid profile
+    // remove this so non logged in users can still see public lists
+    // .not('profiles', 'is', null) // Only get lists with a valid profile
     .limit(20);
 
   if (listsError) {
     console.error("Error fetching community lists:", listsError);
-    return <BrowseClientPage initialLists={[]} error={listsError.message} />;
+    return <BrowseClientPage initialLists={[]} error={listsError.message} loggedIn= {!!user}/>;
   }
 
   // 2. Fetch items for those lists
@@ -48,5 +51,5 @@ export default async function BrowsePage() {
     list_items: allItems.filter(item => item.list_id === list.id)
   }));
 
-  return <BrowseClientPage initialLists={communityLists} />;
+  return <BrowseClientPage initialLists={communityLists} loggedIn={!!user} />;
 }
