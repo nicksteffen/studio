@@ -91,13 +91,12 @@ export default function BrowseClientPage({ initialLists, error }: BrowseClientPa
             const userName = list.profiles?.username ?? 'Anonymous';
             const userAvatar = list.profiles?.avatar_url ?? `https://placehold.co/100x100.png`;
             const fallbackChar = userName?.charAt(0)?.toUpperCase() || '?';
-            const debugAvatarUrl = list.profiles?.avatar_url ?? 'URL is null';
 
             return (
               <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
                 <CardHeader>
                   <div className="flex items-center gap-4">
-                    <Avatar title={`Debug URL: ${debugAvatarUrl}`}>
+                    <Avatar>
                       <AvatarImage src={userAvatar} data-ai-hint="person portrait" />
                       <AvatarFallback>{fallbackChar}</AvatarFallback>
                     </Avatar>

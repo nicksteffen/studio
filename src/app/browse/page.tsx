@@ -7,13 +7,14 @@ export const revalidate = 60; // Revalidate every 60 seconds
 export default async function BrowsePage() {
   const supabase = createClient();
 
-  // 1. Fetch public lists and their authors
+  // 1. Fetch public lists and their authors using a strict inner join
+  // to ensure we only get lists with a valid profile.
   const { data: lists, error: listsError } = await supabase
     .from('lists')
     .select(`
         id,
         title,
-        profiles ( username, avatar_url )
+        profiles!inner ( username, avatar_url )
     `)
     .eq('is_public', true)
     .limit(20);
