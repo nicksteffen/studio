@@ -40,6 +40,8 @@ export function UserNav() {
         fetchUserAndProfile(session.user);
       } else {
         setProfile(null);
+        // We don't need to force a router refresh here, layout shift can be jarring.
+        // The redirects on protected pages will handle sending unauth'd users away.
       }
     });
 
@@ -54,7 +56,7 @@ export function UserNav() {
     getInitialSession();
 
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

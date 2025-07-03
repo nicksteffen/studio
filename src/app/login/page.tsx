@@ -1,43 +1,15 @@
-'use client';
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { login } from './actions'
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoaderCircle } from 'lucide-react';
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-
-export default function LoginPage() {
-  const supabase = createClient();
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
-      setIsSubmitting(false);
-    } else {
-      // Use router to redirect and refresh the page to update the session
-      router.push('/my-list');
-      router.refresh();
-    }
-  };
-
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { message: string }
+}) {
   return (
     <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm shadow-2xl">
@@ -46,15 +18,14 @@ export default function LoginPage() {
           <CardDescription>Sign in to continue your list.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignIn} className="space-y-4">
+          <form action={login} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -62,17 +33,19 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
               />
             </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+            {searchParams?.message && (
+              <p className="text-destructive text-sm p-2 bg-destructive/10 rounded-md text-center">
+                {searchParams.message}
+              </p>
+            )}
+            <Button type="submit" className="w-full">
               Sign In
             </Button>
           </form>
@@ -85,5 +58,5 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
