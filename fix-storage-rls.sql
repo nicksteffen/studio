@@ -1,38 +1,30 @@
--- Drop the old restrictive SELECT policy if it exists to avoid conflicts.
-DROP POLICY IF EXISTS "Avatar images are publicly viewable by authenticated users" ON storage.objects;
+-- Drop all existing policies on profile-avatars to avoid conflicts
+DROP POLICY IF EXISTS "Avatar images are publicly viewable by all users" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can insert their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete their own avatar" ON storage.objects;
 
--- Create a new public SELECT policy.
--- This allows anyone to view images in the 'profile-avatars' bucket.
-CREATE OR REPLACE POLICY "Avatar images are publicly viewable by all users"
-  ON storage.objects
-  FOR SELECT
-  USING (
-    bucket_id = 'profile-avatars'
-  );
+-- Create new, corrected policies
 
--- The policies below ensure that only the authenticated user can manage their own files.
--- We use CREATE OR REPLACE to make this script safe to re-run.
+-- 1. Public Read Access
+CREATE POLICY "Avatar images are publicly viewable by all users"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'profile-avatars' );
 
--- Grant insert access to the owner of the avatar
-CREATE OR REPLACE POLICY "Users can upload their own avatar"
-  ON storage.objects
-  FOR INSERT
-  WITH CHECK (
-    bucket_id = 'profile-avatars' AND auth.uid() = (storage.foldername(name))[1]::uuid
-  );
+-- 2. Authenticated Insert
+CREATE POLICY "Authenticated users can insert their own avatar"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK ( bucket_id = 'profile-avatars' AND auth.uid() = owner );
 
--- Grant update access to the owner of the avatar
-CREATE OR REPLACE POLICY "Users can update their own avatar"
-  ON storage.objects
-  FOR UPDATE
-  USING (
-    bucket_id = 'profile-avatars' AND auth.uid() = (storage.foldername(name))[1]::uuid
-  );
+-- 3. Authenticated Update
+CREATE POLICY "Authenticated users can update their own avatar"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING ( auth.uid() = owner );
 
--- Grant delete access to the owner of the avatar
-CREATE OR REPLACE POLICY "Users can delete their own avatar"
-  ON storage.objects
-  FOR DELETE
-  USING (
-    bucket_id = 'profile-avatars' AND auth.uid() = (storage.foldername(name))[1]::uuid
-  );
+-- 4. Authenticated Delete
+CREATE POLICY "Authenticated users can delete their own avatar"
+ON storage.objects FOR DELETE
+TO authenticated
+USING ( auth.uid() = owner );
