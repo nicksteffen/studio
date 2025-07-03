@@ -1,4 +1,6 @@
 'use client';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -10,6 +12,8 @@ import AddToListButton from './add-to-list-button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { supabase as clientSupabase } from '@/lib/supabase/client';
+
+export const revalidate = 60; // Revalidate every 60 seconds
 
 export default function BrowsePage() {
   const [communityLists, setCommunityLists] = useState<CommunityList[]>([]);
