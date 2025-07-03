@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, Fragment, useEffect } from 'react';
 import type { ListItem } from '@/lib/types';
+import type { User } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -11,14 +12,14 @@ import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import type { User } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ImageGenerator } from './image-generator';
+import { createClient } from '@/lib/supabase/client';
 
 
 export default function MyListPage() {
+  const supabase = createClient();
   const [items, setItems] = useState<ListItem[]>([]);
   const [newItemText, setNewItemText] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -98,10 +99,23 @@ export default function MyListPage() {
         }
     });
 
+    // Also fetch user on initial load
+    const getInitialUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        fetchListData(user);
+      } else {
+        router.push('/login');
+      }
+    };
+    getInitialUser();
+
+
     return () => {
         subscription.unsubscribe();
     };
-  }, [router, toast]);
+  }, [router, toast, supabase]);
 
 
   const handleDragSort = async () => {
@@ -227,28 +241,24 @@ export default function MyListPage() {
 
     const node = imageGeneratorRef.current;
     
-    // Create a clone of the node to capture. This is a robust way to handle off-screen elements.
     const clone = node.cloneNode(true) as HTMLElement;
     
-    // Style the clone to be rendered off-screen
     clone.style.position = 'absolute';
     clone.style.left = '-9999px';
     clone.style.top = '0px';
     clone.style.zIndex = '-1';
     
-    // Append the clone to the body to ensure it's rendered by the browser
     document.body.appendChild(clone);
     
     try {
-      // Add a small delay to allow the browser to render the clone, especially fonts
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(clone, {
         useCORS: true,
-        scale: 2, // Capture at a higher resolution
+        scale: 2, 
         width: 1080,
         height: 1920,
-        backgroundColor: null, // Let the component's background show through
+        backgroundColor: null, 
       });
 
       const dataUrl = canvas.toDataURL('image/png');
@@ -262,7 +272,6 @@ export default function MyListPage() {
         variant: 'destructive',
       });
     } finally {
-      // Clean up by removing the clone from the DOM
       document.body.removeChild(clone);
       setIsGeneratingImage(false);
     }

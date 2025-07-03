@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignUpPage() {
+  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,15 +23,19 @@ export default function SignUpPage() {
     setIsSubmitting(true);
     setError(null);
 
-    try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-      alert('Account created successfully! Please log in.');
-      router.push('/login');
-    } catch (error: any) {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
       setError(error.message);
-    } finally {
       setIsSubmitting(false);
+    } else {
+      // On successful signup, Supabase SSR creates a session.
+      // Redirect to the profile page to encourage completion and refresh the session.
+      router.push('/profile');
+      router.refresh();
     }
   };
 

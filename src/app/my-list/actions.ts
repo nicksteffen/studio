@@ -18,7 +18,7 @@ export async function addSuggestionToList(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const validatedFields = addSuggestionSchema.safeParse({
     suggestion: formData.get('suggestion'),
@@ -32,6 +32,7 @@ export async function addSuggestionToList(
   }
   
   const { data: { user } } = await supabase.auth.getUser();
+  console.log(user)
 
   if (!user) {
     return { message: "You must be logged in to add items.", error: true };

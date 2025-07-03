@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useState, useActionState, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import type { User } from '@supabase/ssr';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoaderCircle, Save, Camera } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
 import { updateProfile } from './actions';
 import { useFormStatus } from 'react-dom';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
+import { createClient } from '@/lib/supabase/client';
 
 const initialState = {
   message: '',
@@ -31,6 +31,7 @@ function SubmitButton() {
 }
 
 export default function ProfilePage() {
+  const supabase = createClient();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ export default function ProfilePage() {
     };
 
     fetchUserAndProfile();
-  }, [toast]);
+  }, [toast, supabase]);
   
   useEffect(() => {
     if (isFirstRender.current) {
@@ -226,7 +227,7 @@ export default function ProfilePage() {
               <Input
                 id="avatar_url"
                 name="avatar_url"
-                key={profile.avatar_url} // Force re-render if profile state changes
+                key={profile.avatar_url} 
                 defaultValue={profile.avatar_url ?? ''}
                 placeholder="Or paste an image URL"
               />

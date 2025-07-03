@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,7 @@ import { CreditCard, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function UserNav() {
+  const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ username: string | null; avatar_url: string | null } | null>(null);
   const router = useRouter();
@@ -53,7 +54,7 @@ export function UserNav() {
     getInitialSession();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase, supabase.auth]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

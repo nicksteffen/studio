@@ -1,18 +1,19 @@
 'use client';
 
 import { useEffect, useState, useActionState, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { LoaderCircle, Save, ShieldCheck, Bell, Trash2, AlertTriangle } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
+// import { supabase } from '@/lib/supabase';
+// import type { User } from '@supabase/supabase-js';
 import { updateSettings } from './actions';
 import { useFormStatus } from 'react-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { createClient } from '@/lib/supabase/client';
 
 const initialState = {
   message: '',
@@ -30,7 +31,8 @@ function SubmitButton() {
     )
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const supabase = await createClient();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
