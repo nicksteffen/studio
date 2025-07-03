@@ -1,3 +1,4 @@
+'use client';
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,38 +10,41 @@ import { CATEGORIES } from '@/lib/mock-data';
 import type { CommunityList } from '@/lib/types';
 import AddToListButton from './add-to-list-button';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { supabase as clientSupabase } from '@/lib/supabase';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
-export default async function BrowsePage() {
-  const cookieStore = cookies()
+export default function BrowsePage() {
+  const [communityLists, setCommunityLists] = useState<CommunityList[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-      },
-    }
-  );
+  useEffect(() => {
+    const fetchLists = async () => {
+      setLoading(true);
+      const { data, error } = await clientSupabase
+        .from('lists')
+        .select(`
+            id,
+            title,
+            profiles ( username, avatar_url ),
+            list_items ( id, text, completed )
+        `)
+        .eq('is_public', true)
+        .limit(9);
 
-  const { data: communityLists, error } = await supabase
-    .from('lists')
-    .select(`
-        id,
-        title,
-        author:profiles ( username, avatar_url ),
-        list_items ( id, text, completed )
-    `)
-    .eq('is_public', true)
-    .limit(9);
-  
-  if (error) {
-    console.error("Error fetching community lists:", error);
-  }
+      if (error) {
+        console.error("Error fetching community lists:", error);
+        setError(error.message);
+      } else {
+        setCommunityLists(data as CommunityList[] || []);
+      }
+      setLoading(false);
+    };
+    fetchLists();
+  }, []);
+
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -65,15 +69,27 @@ export default async function BrowsePage() {
         </div>
       </div>
 
-      {(communityLists?.length ?? 0) === 0 ? (
+      {loading && (
+         <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading community lists...</p>
+        </div>
+      )}
+
+      {error && (
+         <div className="text-center py-12 text-destructive">
+            <p>Could not load community lists. {error}</p>
+        </div>
+      )}
+
+      {!loading && !error && (communityLists.length === 0) ? (
         <div className="text-center py-12">
             <p className="text-muted-foreground">No public lists found yet. Be the first to make your list public!</p>
         </div>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {communityLists!.map((list: CommunityList) => {
-            const userName = list.author?.username ?? 'Anonymous';
-            const userAvatar = list.author?.avatar_url ?? `https://placehold.co/100x100.png`;
+          {communityLists.map((list: CommunityList) => {
+            const userName = list.profiles?.username ?? 'Anonymous';
+            const userAvatar = list.profiles?.avatar_url ?? `https://placehold.co/100x100.png`;
             const fallbackChar = userName?.charAt(0)?.toUpperCase() || '?';
 
             return (
