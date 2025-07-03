@@ -1,404 +1,62 @@
-'use client';
-import { useState, useRef, Fragment, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import MyListClient from './my-list-client';
 import type { ListItem } from '@/lib/types';
-import type { User } from '@supabase/ssr';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
-import html2canvas from 'html2canvas';
-import download from 'downloadjs';
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ImageGenerator } from './image-generator';
-import { createClient } from '@/lib/supabase/client';
 
-
-export default function MyListPage() {
+export default async function MyListPage() {
   const supabase = createClient();
-  const [items, setItems] = useState<ListItem[]>([]);
-  const [newItemText, setNewItemText] = useState('');
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState('');
-  const [user, setUser] = useState<User | null>(null);
-  const [listId, setListId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
-  const { toast } = useToast();
-  const router = useRouter();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const imageGeneratorRef = useRef<HTMLDivElement>(null);
-  const dragItem = useRef<number | null>(null);
-  const dragOverItem = useRef<number | null>(null);
-
-  useEffect(() => {
-    const fetchListData = async (user: User) => {
-        let { data: listData, error: listError } = await supabase
-            .from('lists')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
-        
-        let currentListId = listData?.id;
-
-        if (listError && listError.code !== 'PGRST116') {
-            console.error('Error fetching list:', listError);
-            toast({ title: "Error", description: "Could not fetch your list.", variant: "destructive" });
-            setLoading(false);
-            return;
-        }
-
-        if (!listData) {
-            const { data: newListData, error: newListError } = await supabase
-                .from('lists')
-                .insert({ user_id: user.id, title: `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List` })
-                .select('id')
-                .single();
-
-            if (newListError) {
-                console.error('Error creating list:', newListError);
-                toast({ title: "Error", description: "Could not create a new list for you.", variant: "destructive" });
-                setLoading(false);
-                return;
-            }
-            currentListId = newListData.id;
-        }
-
-        if (currentListId) {
-            setListId(currentListId);
-            const { data: itemsData, error: itemsError } = await supabase
-                .from('list_items')
-                .select('*')
-                .eq('list_id', currentListId)
-                .order('position', { ascending: true });
-    
-            if (itemsError) {
-                console.error('Error fetching items:', itemsError);
-                toast({ title: "Error", description: "Could not fetch your list items.", variant: "destructive" });
-            } else {
-                setItems(itemsData || []);
-            }
-        }
-        setLoading(false);
-    }
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session?.user) {
-            setUser(session.user);
-            fetchListData(session.user);
-        } else {
-            setUser(null);
-            setItems([]);
-            setLoading(false);
-            router.push('/login');
-        }
-    });
-
-    // Also fetch user on initial load
-    const getInitialUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        fetchListData(user);
-      } else {
-        router.push('/login');
-      }
-    };
-    getInitialUser();
-
-
-    return () => {
-        subscription.unsubscribe();
-    };
-  }, [router, toast, supabase]);
-
-
-  const handleDragSort = async () => {
-    if (dragItem.current === null || dragOverItem.current === null) return;
-    const originalItems = [...items];
-    const _items = [...items];
-    const draggedItemContent = _items.splice(dragItem.current, 1)[0];
-    _items.splice(dragOverItem.current, 0, draggedItemContent);
-    dragItem.current = null;
-    dragOverItem.current = null;
-    setItems(_items);
-
-    const updates = _items.map((item, index) => 
-        supabase
-            .from('list_items')
-            .update({ position: index })
-            .eq('id', item.id)
-    );
-    
-    const results = await Promise.all(updates);
-    const firstError = results.find(res => res.error);
-    
-    if (firstError) {
-        toast({ title: 'Error saving order', description: firstError.error.message, variant: 'destructive' });
-        setItems(originalItems); // Revert on error
-    }
-  };
-
-  const handleAddItem = async () => {
-    if (newItemText.trim() === '' || !listId || !user) return;
-    const newItemPayload = {
-      list_id: listId,
-      user_id: user.id,
-      text: newItemText,
-      completed: false,
-      category: 'Other' as const,
-      position: items.length,
-    };
-    const { data, error } = await supabase
-        .from('list_items')
-        .insert(newItemPayload)
-        .select()
-        .single();
-    if (error) {
-        toast({ title: "Error adding item", description: error.message, variant: "destructive" });
-        return;
-    }
-    if (data) {
-        setItems([...items, data]);
-    }
-    setNewItemText('');
-  };
-
-  const handleToggleComplete = async (id: string) => {
-    const originalItems = [...items];
-    const itemToToggle = items.find(item => item.id === id);
-    if (!itemToToggle) return;
-    setItems(
-      items.map(item =>
-        item.id === id ? { ...item, completed: !item.completed } : item
-      )
-    );
-    const { error } = await supabase
-        .from('list_items')
-        .update({ completed: !itemToToggle.completed })
-        .eq('id', id);
-    if(error){
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        setItems(originalItems);
-    }
-  };
-  
-  const handleDeleteItem = async (id: string) => {
-    const originalItems = [...items];
-    setItems(items.filter(item => item.id !== id));
-    const { error } = await supabase.from('list_items').delete().eq('id', id);
-    if (error) {
-      toast({ title: "Error deleting item", description: error.message, variant: "destructive" });
-      setItems(originalItems);
-    }
-  };
-  
-  const handleStartEditing = (item: ListItem) => {
-    setEditingItemId(item.id);
-    setEditingText(item.text);
-  };
-
-  const handleSaveEdit = async (id: string) => {
-    const originalItems = [...items];
-    setItems(items.map(item => item.id === id ? { ...item, text: editingText } : item));
-    setEditingItemId(null);
-    setEditingText('');
-
-    const { error } = await supabase.from('list_items').update({ text: editingText }).eq('id', id);
-    if (error) {
-        toast({ title: "Error saving item", description: error.message, variant: "destructive" });
-        setItems(originalItems);
-    }
-  };
-
-  const completedCount = items.filter(item => item.completed).length;
-  const progressValue = (completedCount / 30) * 100;
-
-  const handleGenerateImage = async () => {
-    if (!imageGeneratorRef.current) {
-      toast({
-        title: 'Error',
-        description: 'Image generator is not ready.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (items.length === 0) {
-      toast({
-        title: 'Empty List',
-        description: 'Add some items to your list before generating an image.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsGeneratingImage(true);
-
-    const node = imageGeneratorRef.current;
-    
-    const clone = node.cloneNode(true) as HTMLElement;
-    
-    clone.style.position = 'absolute';
-    clone.style.left = '-9999px';
-    clone.style.top = '0px';
-    clone.style.zIndex = '-1';
-    
-    document.body.appendChild(clone);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
-        useCORS: true,
-        scale: 2, 
-        width: 1080,
-        height: 1920,
-        backgroundColor: null, 
-      });
-
-      const dataUrl = canvas.toDataURL('image/png');
-      download(dataUrl, 'my-before-30-list.png');
-      toast({ title: 'Success!', description: 'Your image has been downloaded.' });
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        title: 'Error Generating Image',
-        description: err.message || 'Could not generate image. Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      document.body.removeChild(clone);
-      setIsGeneratingImage(false);
-    }
-  };
-
-  const handleShareLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast({ title: "Link Copied!", description: "Your public list URL is now on your clipboard." });
+  if (!user) {
+    redirect('/login');
   }
 
-  return (
-    <>
-      <div className="container mx-auto max-w-3xl py-12 px-4">
-        <div className="text-center mb-4">
-          <h1 className="font-headline text-4xl font-bold tracking-tight text-primary">
-            My 30 Before 30 List
-          </h1>
-          <p className="mt-2 text-lg text-foreground/80">
-            Drag and drop to reorder. Check off your accomplishments.
-          </p>
-        </div>
+  // Fetch list and items
+  let { data: listData, error: listError } = await supabase
+    .from('lists')
+    .select('id')
+    .eq('user_id', user.id)
+    .single();
+  
+  let listId = listData?.id;
+  let items: ListItem[] = [];
 
-        <div className="flex justify-end gap-2 mb-4">
-            <Button variant="outline" onClick={handleShareLink}>
-                <Share2 className="mr-2 h-4 w-4" /> Share Link
-            </Button>
-            <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
-                {isGeneratingImage ? (
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <ImageIcon className="mr-2 h-4 w-4" />
-                )}
-                {isGeneratingImage ? 'Generating...' : 'Generate Image'}
-            </Button>
-        </div>
+  if (listError && listError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error fetching list:', listError);
+      // In a real app, you might want to show an error page
+  }
 
-        <Card className="shadow-xl">
-            <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                    <span>Progress</span>
-                    <span>{completedCount} / 30</span>
-                </CardTitle>
-                <Progress value={progressValue} className="w-full h-2" />
-            </CardHeader>
-          <CardContent>
-            {loading ? (
-                <div className="space-y-4 pt-4">
-                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-                </div>
-            ) : (
-            <>
-            <div
-              className="space-y-2"
-              onDragEnd={handleDragSort}
-            >
-              {items.map((item, index) => (
-                <Fragment key={item.id}>
-                  <div
-                    draggable
-                    onDragStart={() => (dragItem.current = index)}
-                    onDragEnter={() => (dragOverItem.current = index)}
-                    onDragOver={(e) => e.preventDefault()}
-                    className="group flex items-center p-2 rounded-lg transition-colors hover:bg-secondary"
-                  >
-                    <GripVertical className="h-5 w-5 mr-2 text-muted-foreground cursor-grab group-hover:text-foreground" />
-                    <span className="w-6 text-sm text-muted-foreground font-mono text-right">{index + 1}.</span>
-                    <button onClick={() => handleToggleComplete(item.id)} className="ml-3 mr-3">
-                      {item.completed ? <Check className="h-6 w-6 text-accent" /> : <Circle className="h-6 w-6 text-border" />}
-                    </button>
+  // If the user has no list yet, create one. This is a good place for it.
+  if (!listData) {
+      const { data: newListData, error: newListError } = await supabase
+          .from('lists')
+          .insert({ user_id: user.id, title: `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List` })
+          .select('id')
+          .single();
 
-                    {editingItemId === item.id ? (
-                      <Input 
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        onBlur={() => handleSaveEdit(item.id)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(item.id)}
-                        autoFocus
-                        className="flex-1"
-                      />
-                    ) : (
-                      <span className={cn('flex-1', item.completed && 'line-through text-muted-foreground')}>
-                        {item.text}
-                      </span>
-                    )}
-                    
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
-                        <Button variant="ghost" size="icon" onClick={() => editingItemId === item.id ? handleSaveEdit(item.id) : handleStartEditing(item)}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
+      if (newListError) {
+          console.error('Error creating list:', newListError);
+          // Handle error display
+      } else {
+          listId = newListData.id;
+      }
+  }
+  
+  if (listId) {
+      const { data: itemsData, error: itemsError } = await supabase
+          .from('list_items')
+          .select('*')
+          .eq('list_id', listId)
+          .order('position', { ascending: true });
 
-                  </div>
-                  {index === 29 && (
-                     <div className="relative text-center my-2">
-                        <Separator />
-                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card px-2 text-xs text-muted-foreground font-semibold">THE BIG 30</span>
-                    </div>
-                  )}
-                </Fragment>
-              ))}
+      if (itemsError) {
+          console.error('Error fetching items:', itemsError);
+          // Handle error
+      } else {
+          items = itemsData || [];
+      }
+  }
 
-            </div>
-            {items.length < 40 && (
-                <div className="mt-6 pt-4 border-t border-dashed">
-                    <div className="flex items-center gap-2">
-                        <Input
-                        type="text"
-                        placeholder="Add a new goal..."
-                        value={newItemText}
-                        onChange={(e) => setNewItemText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
-                        />
-                        <Button onClick={handleAddItem}>
-                            <Plus className="h-4 w-4 mr-2" /> Add
-                        </Button>
-                    </div>
-                </div>
-            )}
-            </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      <ImageGenerator ref={imageGeneratorRef} items={items} />
-    </>
-  );
+  return <MyListClient user={user} initialListId={listId} initialItems={items} />;
 }
