@@ -2,8 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Create a response object to be modified and returned
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -20,11 +19,21 @@ export async function middleware(request: NextRequest) {
         set(name: string, value: string, options: CookieOptions) {
           // If a cookie is set, we need to update it on the request and response
           request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
           // If a cookie is removed, we need to delete it from the request and response
           request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
           response.cookies.set({ name, value: '', ...options })
         },
       },

@@ -5,7 +5,10 @@ import BrowseClientPage from './browse-client';
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function BrowsePage() {
-  const supabase = createClient();
+  const supabase = await createClient();
+
+  const user = await supabase.auth.getUser();
+  console.log(user)
 
   // 1. Fetch public lists and their authors. Using a wildcard `*` to see if
   // this resolves the issue of avatar_url being null.
@@ -14,10 +17,12 @@ export default async function BrowsePage() {
     .select(`
         id,
         title,
-        profiles ( * )
+        user_id,
+        profiles ( username, avatar_url )
     `)
     .eq('is_public', true)
     .limit(20);
+  // console.log(lists)
 
   if (listsError) {
     console.error("Error fetching community lists:", listsError);
