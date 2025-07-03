@@ -13,7 +13,6 @@ const navLinks = [
   { href: '/my-list', label: 'My List' },
   { href: '/browse', label: 'Browse Ideas' },
   { href: '/suggestions', label: 'AI Suggestions' },
-  { href: '/to-buy', label: 'Shop The List' },
 ];
 
 export function Header() {
