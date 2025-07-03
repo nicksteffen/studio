@@ -32,7 +32,7 @@ export default async function BrowsePage() {
     .select(`
         id,
         title,
-        profiles ( username, avatar_url ),
+        author:profiles ( username, avatar_url ),
         list_items ( id, text, completed )
     `)
     .eq('is_public', true)
@@ -72,8 +72,8 @@ export default async function BrowsePage() {
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {communityLists!.map((list: CommunityList) => {
-            const userName = list.profiles?.username ?? 'Anonymous';
-            const userAvatar = list.profiles?.avatar_url ?? `https://placehold.co/100x100.png`;
+            const userName = list.author?.username ?? 'Anonymous';
+            const userAvatar = list.author?.avatar_url ?? `https://placehold.co/100x100.png`;
             const fallbackChar = userName?.charAt(0)?.toUpperCase() || '?';
 
             return (

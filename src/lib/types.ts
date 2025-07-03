@@ -23,7 +23,7 @@ export type UserList = {
 export type CommunityList = {
   id: string;
   title: string | null;
-  profiles: {
+  author: {
       username: string | null;
       avatar_url: string | null;
   } | null;
