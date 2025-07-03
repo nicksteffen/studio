@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -9,7 +9,7 @@ import type { CommunityList } from '@/lib/types';
 import AddToListButton from './add-to-list-button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
-import { supabase as clientSupabase } from '@/lib/supabase';
+import { supabase as clientSupabase } from '@/lib/supabase/client';
 
 export default function BrowsePage() {
   const [communityLists, setCommunityLists] = useState<CommunityList[]>([]);

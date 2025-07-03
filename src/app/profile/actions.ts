@@ -1,9 +1,8 @@
 'use server';
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be 20 characters or less').optional().or(z.literal('')),
@@ -18,29 +17,7 @@ type ProfileState = {
 }
 
 export async function updateProfile(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) { /* The `set` method was called from a Server Component. */ }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) { /* The `delete` method was called from a Server Component. */ }
-        },
-      },
-    }
-  );
-
+  const supabase = createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
