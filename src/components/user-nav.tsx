@@ -34,14 +34,17 @@ export function UserNav() {
       setProfile(data);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserAndProfile(session.user);
       } else {
         setProfile(null);
-        // We don't need to force a router refresh here, layout shift can be jarring.
-        // The redirects on protected pages will handle sending unauth'd users away.
+      }
+      
+      // When auth state changes, refresh the page to sync server components and UI
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        router.refresh();
       }
     });
 
@@ -56,12 +59,13 @@ export function UserNav() {
     getInitialSession();
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, [supabase, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // The onAuthStateChange listener will handle the refresh.
+    // For a smoother UX, we can immediately navigate to the homepage.
     router.push('/');
-    router.refresh();
   };
 
   if (!user) {
