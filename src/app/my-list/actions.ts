@@ -1,8 +1,8 @@
 'use server';
 
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
 
 type AddItemState = {
     message: string;
@@ -18,7 +18,7 @@ export async function addSuggestionToList(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const validatedFields = addSuggestionSchema.safeParse({
     suggestion: formData.get('suggestion'),

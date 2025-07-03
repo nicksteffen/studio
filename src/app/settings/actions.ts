@@ -1,8 +1,8 @@
 'use server';
 
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
 
 const settingsSchema = z.object({
   is_public: z.preprocess((val) => val === 'on', z.boolean()),
@@ -17,6 +17,7 @@ type SettingsState = {
 
 export async function updateSettings(prevState: SettingsState, formData: FormData): Promise<SettingsState> {
   const supabase = createClient();
+
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

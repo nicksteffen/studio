@@ -5,13 +5,7 @@ import BrowseClientPage from './browse-client';
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function BrowsePage() {
-  const supabase = await createClient();
-
-
-  const {data: user} = await supabase.auth.getUser()
-  console.log("user:")
-  console.log(user)
-  console.log("--------")
+  const supabase = createClient();
 
   // 1. Fetch public lists and their authors.
   const { data: lists, error: listsError } = await supabase

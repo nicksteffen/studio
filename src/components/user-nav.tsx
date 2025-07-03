@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// import type { User } from '@supabase/supabase-js';
 import type { User } from '@supabase/ssr';
 import { createClient } from '@/lib/supabase/client';
-// import { supabase } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,7 +54,7 @@ export function UserNav() {
     getInitialSession();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
