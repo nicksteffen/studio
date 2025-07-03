@@ -71,39 +71,45 @@ export default async function BrowsePage() {
         </div>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {communityLists!.map((list: CommunityList) => (
-            <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <Avatar>
-                    <AvatarImage src={list.profiles?.avatar_url ?? undefined} data-ai-hint="person portrait" />
-                    <AvatarFallback>{list.profiles?.username?.charAt(0) ?? '?'}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="font-headline text-lg">{list.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">by {list.profiles?.username ?? 'Anonymous'}</p>
+          {communityLists!.map((list: CommunityList) => {
+            const userName = list.profiles?.username ?? 'Anonymous';
+            const userAvatar = list.profiles?.avatar_url ?? `https://placehold.co/100x100.png`;
+            const fallbackChar = userName?.charAt(0)?.toUpperCase() || '?';
+
+            return (
+              <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <Avatar>
+                      <AvatarImage src={userAvatar} data-ai-hint="person portrait" />
+                      <AvatarFallback>{fallbackChar}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="font-headline text-lg">{list.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground">by {userName}</p>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                 {list.list_items && list.list_items.length > 0 ? (
-                  <ul className="space-y-2 text-sm">
-                    {list.list_items.slice(0, 4).map(item => (
-                      <li key={item.id} className="flex items-center justify-between gap-2">
-                        <span className={cn("truncate", item.completed && "line-through text-muted-foreground")}>{item.text}</span>
-                        <AddToListButton itemText={item.text} />
-                      </li>
-                    ))}
-                    {list.list_items.length > 4 && (
-                        <li className="text-xs text-muted-foreground pt-1">...and {list.list_items.length - 4} more.</li>
-                    )}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">This list is empty.</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  {list.list_items && list.list_items.length > 0 ? (
+                    <ul className="space-y-2 text-sm">
+                      {list.list_items.slice(0, 4).map(item => (
+                        <li key={item.id} className="flex items-center justify-between gap-2">
+                          <span className={cn("truncate", item.completed && "line-through text-muted-foreground")}>{item.text}</span>
+                          <AddToListButton itemText={item.text} />
+                        </li>
+                      ))}
+                      {list.list_items.length > 4 && (
+                          <li className="text-xs text-muted-foreground pt-1">...and {list.list_items.length - 4} more.</li>
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">This list is empty.</p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
