@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
+import type { ListItem } from '@/lib/types';
 import PublicListClientPage from './public-list-client';
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
@@ -7,6 +8,10 @@ export default async function PublicProfilePage({ params }: { params: { username
   const supabase = await createClient();
   let { username }= await params
   username = decodeURIComponent(username);
+
+  const {data: { user } }= await supabase.auth.getUser();
+  const isLoggedIn = !!user; 
+
     
   const { data: userProfile, error: profileError } = await supabase
     .from('profiles')
@@ -14,10 +19,14 @@ export default async function PublicProfilePage({ params }: { params: { username
     .eq('username', username)
     .single();
 
-  console.log(userProfile)
+  // console.log(`check: ${userProfile.id} vs ${user.id}`)
+  const isOwner = userProfile?.id === user?.id;
+
   if (profileError || !userProfile) {
     notFound();
   }
+
+
 
   const { data: list, error: listError } = await supabase
     .from('lists')
@@ -49,5 +58,7 @@ export default async function PublicProfilePage({ params }: { params: { username
     notFound();
   }
 
-  return <PublicListClientPage profile={userProfile} author={userProfile} list={list} items={items || []} />;
+  const listItems : ListItem[] = items;
+
+  return <PublicListClientPage author={userProfile} listTitle={list.title} items={listItems || []}  isLoggedIn={isLoggedIn} isOwner={isOwner} />;
 }

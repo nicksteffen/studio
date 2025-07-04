@@ -17,8 +17,8 @@ interface PublicListClientProps {
         username: string | null;
         avatar_url: string | null;
     } | null;
-    isOwner: boolean;
-    isLoggedIn: boolean;
+    isOwner?: boolean;
+    isLoggedIn?: boolean;
 }
 
 export default function PublicListClient({ listTitle, items, author, isOwner, isLoggedIn }: PublicListClientProps) {
