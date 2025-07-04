@@ -5,7 +5,7 @@ import type { User } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle, Save, X } from 'lucide-react';
+import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle, Save, X, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -287,6 +287,13 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
             <Button variant="outline" onClick={handleShareLink}>
                 <Share2 className="mr-2 h-4 w-4" /> Share Link
             </Button>
+            {username && (
+                <Button variant="outline" asChild>
+                    <Link href={`/public/${username}`}>
+                        <Eye className="mr-2 h-4 w-4" /> Preview List
+                    </Link>
+                </Button>
+            )}
             <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
                 {isGeneratingImage ? (
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
