@@ -16,6 +16,7 @@ import { ImageGenerator } from './image-generator';
 import { createClient } from '@/lib/supabase/client';
 import { updateListTitle } from './actions';
 import Link from 'next/link';
+import { ShareButton } from '@/components/share-button';
 
 interface MyListClientProps {
     user: User;
@@ -34,6 +35,7 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
 
   const [listTitle, setListTitle] = useState(initialListTitle);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -50,6 +52,9 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
     setListId(initialListId);
     setListTitle(initialListTitle);
     setUsername(initialUsername);
+    if (typeof window !== 'undefined' && initialUsername) {
+        setShareUrl(`${window.location.origin}/public/${initialUsername}`);
+    }
   }, [initialItems, initialListId, initialListTitle, initialUsername]);
 
   const isFirstTitleRender = useRef(true);
@@ -228,23 +233,18 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
       setIsGeneratingImage(false);
     }
   };
-
-  const handleShareLink = () => {
-    if (!username) {
-      toast({
-          title: "Set a Username First!",
-          description: (
-            <span>
-              You need a username to share your public profile. You can set one on the{' '}
-              <Link href="/profile" className="underline font-bold">Profile page</Link>.
-            </span>
-          ),
-          variant: "default",
-      });
-      return;
-    }
-    navigator.clipboard.writeText(`${window.location.origin}/public/${username}`);
-    toast({ title: "Link Copied!", description: "Your public list URL is now on your clipboard." });
+  
+  const handleNoUsername = () => {
+    toast({
+        title: "Set a Username First!",
+        description: (
+          <span>
+            You need a username to share your public profile. You can set one on the{' '}
+            <Link href="/profile" className="underline font-bold">Profile page</Link>.
+          </span>
+        ),
+        variant: "default",
+    });
   }
 
   return (
@@ -284,14 +284,18 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
         </div>
 
         <div className="flex justify-end gap-2 mb-4">
-            <Button variant="outline" onClick={handleShareLink}>
-                <Share2 className="mr-2 h-4 w-4" /> Share Link
-            </Button>
-            {username && (
-                <Button variant="outline" asChild>
-                    <Link href={`/public/${username}`}>
-                        <Eye className="mr-2 h-4 w-4" /> Preview List
-                    </Link>
+             {username ? (
+                <>
+                    <ShareButton url={shareUrl} title={listTitle} />
+                    <Button variant="outline" asChild>
+                        <Link href={`/public/${username}`}>
+                            <Eye className="mr-2 h-4 w-4" /> Preview
+                        </Link>
+                    </Button>
+                </>
+            ) : (
+                <Button variant="outline" onClick={handleNoUsername}>
+                    <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
             )}
             <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
