@@ -43,7 +43,7 @@ export function UserNav() {
       }
       
       // When auth state changes, refresh the page to sync server components and UI
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === "USER_UPDATED") {
         router.refresh();
       }
     });
@@ -63,8 +63,6 @@ export function UserNav() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // The onAuthStateChange listener will handle the refresh.
-    // For a smoother UX, we can immediately navigate to the homepage.
     router.push('/');
   };
 
@@ -82,7 +80,7 @@ export function UserNav() {
   }
 
   const userEmail = user.email || 'no-email@example.com';
-  const userName = profile?.username || user.user_metadata?.name || userEmail.split('@')[0];
+  const userName = profile?.username || user.user_metadata?.name || 'New User';
   const userAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || `https://placehold.co/100x100.png`;
 
   return (

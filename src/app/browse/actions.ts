@@ -18,7 +18,7 @@ export async function addItemFromCommunity(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const validatedFields = addItemSchema.safeParse({
     itemText: formData.get('itemText'),
@@ -50,7 +50,7 @@ export async function addItemFromCommunity(
     if (!listData) {
         const { data: newListData, error: newListError } = await supabase
             .from('lists')
-            .insert({ user_id: user.id, title: `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List` })
+            .insert({ user_id: user.id, title: "My 30 Before 30 List" })
             .select('id')
             .single();
         if (newListError) throw newListError;

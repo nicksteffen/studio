@@ -7,7 +7,6 @@
   - ai read list and suggest products for logged in user
   
 ## Small updates
- - don't display emails of users publically
  - update profile page
     - should have a user name and an email field
     - on sign up/ first sign in direct users to profile page

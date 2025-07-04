@@ -4,7 +4,7 @@ import MyListClient from './my-list-client';
 import type { ListItem } from '@/lib/types';
 
 export default async function MyListPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data:  { user }  } = await supabase.auth.getUser();
 
@@ -30,7 +30,7 @@ export default async function MyListPage() {
 
   // If the user has no list yet, create one. This is a good place for it.
   if (!listData) {
-      const defaultTitle = `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List`;
+      const defaultTitle = "My 30 Before 30 List";
       const { data: newListData, error: newListError } = await supabase
           .from('lists')
           .insert({ user_id: user.id, title: defaultTitle })
