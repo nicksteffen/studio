@@ -24,7 +24,7 @@ type ProfileState = {
 }
 
 export async function updateProfile(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

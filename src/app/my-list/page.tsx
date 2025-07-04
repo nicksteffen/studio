@@ -4,7 +4,7 @@ import MyListClient from './my-list-client';
 import type { ListItem } from '@/lib/types';
 
 export default async function MyListPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data:  { user }  } = await supabase.auth.getUser();
 

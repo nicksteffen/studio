@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import PublicListClientPage from './public-list-client';
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const username = decodeURIComponent(params.username);
 
   const { data: userProfile, error: profileError } = await supabase
