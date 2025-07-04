@@ -11,7 +11,6 @@ import { LoaderCircle, Save, Camera } from 'lucide-react';
 import { updateProfile } from './actions';
 import { useFormStatus } from 'react-dom';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
 
 const initialState = {
   message: '',
@@ -29,21 +28,26 @@ function SubmitButton() {
     )
 }
 
+function AvatarSpinner() {
+    const { pending } = useFormStatus();
+    return pending ? <LoaderCircle className="h-8 w-8 text-white animate-spin" /> : <Camera className="h-8 w-8 text-white" />
+}
+
 interface ProfileClientProps {
     user: User;
     profile: { username: string | null, avatar_url: string | null } | null;
 }
 
 export default function ProfileClientPage({ user, profile: initialProfile }: ProfileClientProps) {
-  const supabase = createClient();
   const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
-  const [profile, setProfile] = useState(initialProfile ?? { username: '', avatar_url: '' });
   const [state, formAction] = useActionState(updateProfile, initialState);
+  const [previewUrl, setPreviewUrl] = useState(initialProfile?.avatar_url);
   
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
 
+  // Effect to show toast messages from server action
   useEffect(() => {
     if (isFirstRender.current) {
         isFirstRender.current = false;
@@ -58,58 +62,23 @@ export default function ProfileClientPage({ user, profile: initialProfile }: Pro
     }
   }, [state, toast]);
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user) {
-      toast({ title: 'Error', description: 'You must be logged in to upload an avatar.', variant: 'destructive' });
-      return;
+  // When server passes new props after revalidation, update the preview
+  useEffect(() => {
+    setPreviewUrl(initialProfile?.avatar_url);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = ""; // Clear file input
     }
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+  }, [initialProfile?.avatar_url]);
 
-    setIsUploading(true);
-    toast({ title: 'Uploading...', description: 'Your new avatar is being uploaded.' });
 
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${user.id}/${Math.random()}.${fileExt}`;
-
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from('profile-avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data } = supabase.storage.from('profile-avatars').getPublicUrl(filePath);
-      const newAvatarUrl = data.publicUrl;
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .upsert({ id: user.id, avatar_url: newAvatarUrl, updated_at: new Date().toISOString() });
-      
-      if (updateError) {
-        throw updateError;
-      }
-      
-      setProfile(prev => ({ ...prev, avatar_url: newAvatarUrl }));
-      
-      if (formRef.current) {
-        const urlInput = formRef.current.elements.namedItem('avatar_url') as HTMLInputElement;
-        if (urlInput) {
-          urlInput.value = newAvatarUrl;
-        }
-      }
-      
-      toast({ title: 'Success!', description: 'Your avatar has been updated.' });
-
-    } catch (error: any) {
-      console.error("Error uploading avatar:", error);
-      toast({ title: 'Upload Failed', description: error.message, variant: 'destructive' });
-    } finally {
-      setIsUploading(false);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string); // Optimistic UI update
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -127,30 +96,28 @@ export default function ProfileClientPage({ user, profile: initialProfile }: Pro
                 <div className="flex items-center space-x-4">
                     <div className="relative">
                         <Image 
-                            src={profile?.avatar_url || 'https://placehold.co/100x100.png'} 
+                            src={previewUrl || 'https://placehold.co/100x100.png'} 
                             alt="Avatar preview" 
                             width={96} 
                             height={96} 
                             className="rounded-full w-24 h-24 object-cover border"
                             data-ai-hint="person face"
+                            key={previewUrl}
                         />
                          <Label 
                             htmlFor="avatar-upload" 
                             className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
                         >
-                            {isUploading ? (
-                                <LoaderCircle className="h-8 w-8 text-white animate-spin" />
-                            ) : (
-                                <Camera className="h-8 w-8 text-white" />
-                            )}
+                            <AvatarSpinner/>
                         </Label>
                         <Input 
-                            id="avatar-upload" 
+                            id="avatar-upload"
+                            ref={fileInputRef} 
+                            name="avatar_file"
                             type="file" 
                             accept="image/*" 
                             className="hidden"
-                            onChange={handleAvatarUpload}
-                            disabled={isUploading}
+                            onChange={handleFileChange}
                         />
                     </div>
                 </div>
@@ -160,7 +127,7 @@ export default function ProfileClientPage({ user, profile: initialProfile }: Pro
               <Input
                 id="username"
                 name="username"
-                defaultValue={profile?.username ?? ''}
+                defaultValue={initialProfile?.username ?? ''}
                 placeholder="Your public display name"
               />
             </div>
@@ -169,8 +136,8 @@ export default function ProfileClientPage({ user, profile: initialProfile }: Pro
               <Input
                 id="avatar_url"
                 name="avatar_url"
-                key={profile?.avatar_url} 
-                defaultValue={profile?.avatar_url ?? ''}
+                key={initialProfile?.avatar_url} // Re-render if URL changes from server
+                defaultValue={initialProfile?.avatar_url ?? ''}
                 placeholder="Or paste an image URL"
               />
             </div>
