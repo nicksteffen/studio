@@ -12,6 +12,9 @@
     - allow uploads of images for profile
  - fix drag and drop on mobile
 
-# NOTES:
+## NOTES:
  - need to decide on public view lists for non-logged in users
  - fe
+
+ ## Fixes:
+  - my-list-client, settings,and user-nav are all still using const supabase = createClient() without await, this should be done server side and pushed into components
