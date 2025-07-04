@@ -3,15 +3,18 @@ import { notFound } from 'next/navigation';
 import PublicListClientPage from './public-list-client';
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
-  const supabase = await createClient();
-  const username = decodeURIComponent(params.username);
 
+  const supabase = await createClient();
+  let { username }= await params
+  username = decodeURIComponent(username);
+    
   const { data: userProfile, error: profileError } = await supabase
     .from('profiles')
     .select('id, username, avatar_url')
     .eq('username', username)
     .single();
 
+  console.log(userProfile)
   if (profileError || !userProfile) {
     notFound();
   }
@@ -46,5 +49,5 @@ export default async function PublicProfilePage({ params }: { params: { username
     notFound();
   }
 
-  return <PublicListClientPage profile={userProfile} list={list} items={items || []} />;
+  return <PublicListClientPage profile={userProfile} author={userProfile} list={list} items={items || []} />;
 }
