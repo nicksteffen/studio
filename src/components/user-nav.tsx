@@ -34,17 +34,12 @@ export function UserNav() {
       setProfile(data);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserAndProfile(session.user);
       } else {
         setProfile(null);
-      }
-      
-      // When auth state changes, refresh the page to sync server components and UI
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === "USER_UPDATED") {
-        router.refresh();
       }
     });
 
@@ -59,11 +54,12 @@ export function UserNav() {
     getInitialSession();
 
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
+  }, [supabase, supabase.auth]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
+    router.refresh();
   };
 
   if (!user) {
