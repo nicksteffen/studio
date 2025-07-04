@@ -16,7 +16,7 @@ type SettingsState = {
 }
 
 export async function updateSettings(prevState: SettingsState, formData: FormData): Promise<SettingsState> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 

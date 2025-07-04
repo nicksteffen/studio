@@ -20,7 +20,7 @@ export async function updateListTitle(
   prevState: UpdateTitleState,
   formData: FormData
 ): Promise<UpdateTitleState> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
@@ -70,7 +70,7 @@ export async function addSuggestionToList(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const validatedFields = addSuggestionSchema.safeParse({
     suggestion: formData.get('suggestion'),
