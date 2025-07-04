@@ -5,11 +5,11 @@
   - should have a amazon affiliate links
   - encorage users to tag products in their lists
   - ai read list and suggest products for logged in user
+ - implement premium purchase flow on billing page
   
 ## Small updates
  - update profile page
     - allow uploads of images for profile
-    - this page needs to be refactored to separate action and client page
  - fix drag and drop on mobile
 
 # NOTES:
