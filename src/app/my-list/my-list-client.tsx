@@ -1,11 +1,11 @@
 'use client';
-import { useState, useRef, Fragment, useEffect } from 'react';
+import { useState, useRef, Fragment, useEffect, useActionState } from 'react';
 import type { ListItem } from '@/lib/types';
 import type { User } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle } from 'lucide-react';
+import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle, Save, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -14,14 +14,16 @@ import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
 import { ImageGenerator } from './image-generator';
 import { createClient } from '@/lib/supabase/client';
+import { updateListTitle } from './actions';
 
 interface MyListClientProps {
     user: User;
     initialListId: string | null;
+    initialListTitle: string;
     initialItems: ListItem[];
 }
 
-export default function MyListClient({ user, initialListId, initialItems }: MyListClientProps) {
+export default function MyListClient({ user, initialListId, initialListTitle, initialItems }: MyListClientProps) {
   const supabase = createClient();
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [listId, setListId] = useState<string | null>(initialListId);
@@ -29,6 +31,10 @@ export default function MyListClient({ user, initialListId, initialItems }: MyLi
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  const [listTitle, setListTitle] = useState(initialListTitle);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleActionState, titleFormAction, isTitleSaving] = useActionState(updateListTitle, { message: '', error: false, success: false });
 
   const { toast } = useToast();
 
@@ -39,8 +45,26 @@ export default function MyListClient({ user, initialListId, initialItems }: MyLi
   useEffect(() => {
     setItems(initialItems);
     setListId(initialListId);
-  }, [initialItems, initialListId]);
+    setListTitle(initialListTitle);
+  }, [initialItems, initialListId, initialListTitle]);
 
+  const isFirstTitleRender = useRef(true);
+  useEffect(() => {
+    if (isFirstTitleRender.current) {
+        isFirstTitleRender.current = false;
+        return;
+    }
+    if (titleActionState.message) {
+      toast({
+        title: titleActionState.error ? "Error" : "Success!",
+        description: titleActionState.message,
+        variant: titleActionState.error ? "destructive" : "default",
+      });
+    }
+    if (titleActionState.success) {
+      setIsEditingTitle(false);
+    }
+  }, [titleActionState, toast]);
 
   const handleDragSort = async () => {
     if (dragItem.current === null || dragOverItem.current === null) return;
@@ -210,9 +234,33 @@ export default function MyListClient({ user, initialListId, initialItems }: MyLi
     <>
       <div className="container mx-auto max-w-3xl py-12 px-4">
         <div className="text-center mb-4">
-          <h1 className="font-headline text-4xl font-bold tracking-tight text-primary">
-            My 30 Before 30 List
-          </h1>
+          {isEditingTitle ? (
+                <form action={titleFormAction} className="flex items-center gap-2 justify-center w-full max-w-lg mx-auto">
+                    <input type="hidden" name="listId" value={listId || ''} />
+                    <Input
+                        name="newTitle"
+                        defaultValue={listTitle}
+                        className="text-2xl sm:text-4xl font-bold tracking-tight text-primary font-headline text-center h-auto p-1 border-b-2 border-primary/50 focus-visible:ring-0 shadow-none"
+                        autoFocus
+                    />
+                    <Button type="submit" size="icon" disabled={isTitleSaving}>
+                        {isTitleSaving ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setIsEditingTitle(false)} disabled={isTitleSaving}>
+                        <X className="h-5 w-5" />
+                    </Button>
+                </form>
+            ) : (
+                <div className="flex items-center justify-center gap-2 group">
+                    <h1 className="font-headline text-4xl font-bold tracking-tight text-primary">
+                        {listTitle}
+                    </h1>
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditingTitle(true)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Edit className="h-5 w-5" />
+                        <span className="sr-only">Edit list title</span>
+                    </Button>
+                </div>
+            )}
           <p className="mt-2 text-lg text-foreground/80">
             Drag and drop to reorder. Check off your accomplishments.
           </p>

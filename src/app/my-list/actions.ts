@@ -4,6 +4,58 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
+// New Action for updating title
+const updateListTitleSchema = z.object({
+  listId: z.string().uuid("Invalid List ID"),
+  newTitle: z.string().min(1, "Title cannot be empty.").max(100, "Title is too long."),
+});
+
+type UpdateTitleState = {
+  message: string;
+  error?: boolean;
+  success?: boolean;
+}
+
+export async function updateListTitle(
+  prevState: UpdateTitleState,
+  formData: FormData
+): Promise<UpdateTitleState> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { message: "You must be logged in.", error: true };
+  }
+
+  const validatedFields = updateListTitleSchema.safeParse({
+    listId: formData.get('listId'),
+    newTitle: formData.get('newTitle'),
+  });
+
+  if (!validatedFields.success) {
+    const errorMessage = validatedFields.error.flatten().fieldErrors.newTitle?.[0] || "Invalid input.";
+    return { message: errorMessage, error: true };
+  }
+
+  const { listId, newTitle } = validatedFields.data;
+
+  try {
+    const { error } = await supabase
+      .from('lists')
+      .update({ title: newTitle })
+      .eq('id', listId)
+      .eq('user_id', user.id); // Security check to ensure user owns the list
+
+    if (error) throw error;
+
+    revalidatePath('/my-list');
+    return { message: "List title updated!", success: true };
+  } catch (error: any) {
+    console.error(error);
+    return { message: "Failed to update list title.", error: true };
+  }
+}
+
 type AddItemState = {
     message: string;
     error?: boolean;
@@ -18,7 +70,7 @@ export async function addSuggestionToList(
   prevState: AddItemState,
   formData: FormData
 ): Promise<AddItemState> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const validatedFields = addSuggestionSchema.safeParse({
     suggestion: formData.get('suggestion'),

@@ -4,25 +4,23 @@ import MyListClient from './my-list-client';
 import type { ListItem } from '@/lib/types';
 
 export default async function MyListPage() {
-    console.log("list page")
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { data:  { user }  } = await supabase.auth.getUser();
-  console.log(user)
 
   if (!user) {
-    console.log("couldnt find user")
     redirect('/login');
   }
 
   // Fetch list and items
   let { data: listData, error: listError } = await supabase
     .from('lists')
-    .select('id')
+    .select('id, title')
     .eq('user_id', user.id)
     .single();
   
   let listId = listData?.id;
+  let listTitle = listData?.title;
   let items: ListItem[] = [];
 
   if (listError && listError.code !== 'PGRST116') { // PGRST116 = no rows found
@@ -32,17 +30,19 @@ export default async function MyListPage() {
 
   // If the user has no list yet, create one. This is a good place for it.
   if (!listData) {
+      const defaultTitle = `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List`;
       const { data: newListData, error: newListError } = await supabase
           .from('lists')
-          .insert({ user_id: user.id, title: `${user.email?.split('@')[0] || 'My'}'s 30 Before 30 List` })
-          .select('id')
+          .insert({ user_id: user.id, title: defaultTitle })
+          .select('id, title')
           .single();
 
       if (newListError) {
           console.error('Error creating list:', newListError);
           // Handle error display
-      } else {
+      } else if (newListData) {
           listId = newListData.id;
+          listTitle = newListData.title;
       }
   }
   
@@ -61,5 +61,5 @@ export default async function MyListPage() {
       }
   }
 
-  return <MyListClient user={user} initialListId={listId} initialItems={items} />;
+  return <MyListClient user={user} initialListId={listId} initialListTitle={listTitle || "My 30 Before 30 List"} initialItems={items} />;
 }
