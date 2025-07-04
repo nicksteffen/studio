@@ -5,14 +5,7 @@
   - should have amazon affiliate links
   - encorage users to tag products in their lists
   - ai read list and suggest products for logged in user
-  - users should be able to rename their lists
-  - users should have a piublic profile where they can share their list
-  - browse page should have a button to link to the public profiles
   
-### allow users to change the name of their list
-### 
-
-
 ## Small updates
  - don't display emails of users publically
  - update profile page

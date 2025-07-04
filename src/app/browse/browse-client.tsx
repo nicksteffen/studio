@@ -10,7 +10,7 @@ import { CATEGORIES } from '@/lib/mock-data';
 import type { CommunityList } from '@/lib/types';
 import AddToListButton from './add-to-list-button';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 
 interface BrowseClientPageProps {
     initialLists: CommunityList[];
@@ -20,7 +20,6 @@ interface BrowseClientPageProps {
 
 export default function BrowseClientPage({ initialLists, error, loggedIn}: BrowseClientPageProps) {
 
-  const user = false;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -76,18 +75,7 @@ export default function BrowseClientPage({ initialLists, error, loggedIn}: Brows
         </div>
       )}
 
-      {/* {!error && (communityLists.length === 0 && !searchTerm && !user) ? (
-        <div className="text-center py-12">
-            <p className="text-muted-foreground">You must be logged in to see community lists.</p>
-        </div>
-      ) : null} */}
-
       {!error && (communityLists.length === 0 && !searchTerm) ? (
-        // !user ? (
-        //   <div className="text-center py-12">
-        //     <p className="text-muted-foreground">You must be logged in to see community lists.</p>
-        //   </div>
-        // ) :
         <div className="text-center py-12">
             <p className="text-muted-foreground">No public lists found yet. Be the first to make your list public!</p>
         </div>
@@ -106,20 +94,21 @@ export default function BrowseClientPage({ initialLists, error, loggedIn}: Brows
             const userName = list.profiles?.username ?? 'Anonymous';
             const userAvatar = list.profiles?.avatar_url ?? `https://placehold.co/100x100.png`;
             const fallbackChar = userName?.charAt(0)?.toUpperCase() || '?';
+            const publicProfileUrl = `/public/${encodeURIComponent(userName)}`;
 
             return (
               <Card key={list.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
                 <CardHeader>
-                  <div className="flex items-center gap-4">
+                  <Link href={publicProfileUrl} className="flex items-center gap-4 group hover:no-underline">
                     <Avatar>
                       <AvatarImage src={userAvatar} data-ai-hint="person portrait" />
                       <AvatarFallback>{fallbackChar}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="font-headline text-lg">{list.title}</CardTitle>
+                      <CardTitle className="font-headline text-lg group-hover:underline">{list.title}</CardTitle>
                       <p className="text-sm text-muted-foreground">by {userName}</p>
                     </div>
-                  </div>
+                  </Link>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   {list.list_items && list.list_items.length > 0 ? (
@@ -127,7 +116,7 @@ export default function BrowseClientPage({ initialLists, error, loggedIn}: Brows
                       {list.list_items.slice(0, 4).map(item => (
                         <li key={item.id} className="flex items-center justify-between gap-2">
                           <span className={cn("truncate", item.completed && "line-through text-muted-foreground")}>{item.text}</span>
-                          <AddToListButton itemText={item.text} />
+                          {loggedIn && <AddToListButton itemText={item.text} />}
                         </li>
                       ))}
                       {list.list_items.length > 4 && (
