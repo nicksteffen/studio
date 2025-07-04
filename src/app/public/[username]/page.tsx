@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function PublicListPage({ params }: { params: { username: string } }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user: loggedInUser } } = await supabase.auth.getUser();
   const username = decodeURIComponent(params.username);
 

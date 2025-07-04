@@ -61,5 +61,18 @@ export default async function MyListPage() {
       }
   }
 
-  return <MyListClient user={user} initialListId={listId} initialListTitle={listTitle || "My 30 Before 30 List"} initialItems={items} />;
+  // Fetch profile to get username for sharing
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
+  return <MyListClient 
+    user={user} 
+    initialListId={listId} 
+    initialListTitle={listTitle || "My 30 Before 30 List"} 
+    initialItems={items} 
+    initialUsername={profile?.username || null}
+    />;
 }

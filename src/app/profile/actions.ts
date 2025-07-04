@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 const profileSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be 20 characters or less').optional().or(z.literal('')),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be 20 characters or less').refine((val) => !/\s/.test(val), {
+    message: "Username cannot contain spaces.",
+  }).optional().or(z.literal('')),
   avatar_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   avatar_file: z
     .instanceof(File)
@@ -22,7 +24,7 @@ type ProfileState = {
 }
 
 export async function updateProfile(prevState: ProfileState, formData: FormData): Promise<ProfileState> {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
@@ -81,10 +83,14 @@ export async function updateProfile(prevState: ProfileState, formData: FormData)
 
   if (error) {
     console.error('Error updating profile:', error);
-    return { message: 'Failed to update profile. Is your username unique?', error: true };
+    if (error.code === '23505') { // Unique violation
+        return { message: 'That username is already taken. Please choose another one.', error: true };
+    }
+    return { message: 'Failed to update profile.', error: true };
   }
 
   revalidatePath('/profile');
+  revalidatePath('/my-list'); // To update username for share link
   revalidatePath('/', 'layout'); // To update user-nav everywhere
   return { message: 'Profile updated successfully!', success: true };
 }

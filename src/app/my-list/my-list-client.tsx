@@ -15,18 +15,21 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageGenerator } from './image-generator';
 import { createClient } from '@/lib/supabase/client';
 import { updateListTitle } from './actions';
+import Link from 'next/link';
 
 interface MyListClientProps {
     user: User;
     initialListId: string | null;
     initialListTitle: string;
     initialItems: ListItem[];
+    initialUsername: string | null;
 }
 
-export default function MyListClient({ user, initialListId, initialListTitle, initialItems }: MyListClientProps) {
+export default function MyListClient({ user, initialListId, initialListTitle, initialItems, initialUsername }: MyListClientProps) {
   const supabase = createClient();
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [listId, setListId] = useState<string | null>(initialListId);
+  const [username, setUsername] = useState<string | null>(initialUsername);
   const [newItemText, setNewItemText] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
@@ -46,7 +49,8 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
     setItems(initialItems);
     setListId(initialListId);
     setListTitle(initialListTitle);
-  }, [initialItems, initialListId, initialListTitle]);
+    setUsername(initialUsername);
+  }, [initialItems, initialListId, initialListTitle, initialUsername]);
 
   const isFirstTitleRender = useRef(true);
   useEffect(() => {
@@ -226,7 +230,20 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
   };
 
   const handleShareLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    if (!username) {
+      toast({
+          title: "Set a Username First!",
+          description: (
+            <span>
+              You need a username to share your public profile. You can set one on the{' '}
+              <Link href="/profile" className="underline font-bold">Profile page</Link>.
+            </span>
+          ),
+          variant: "default",
+      });
+      return;
+    }
+    navigator.clipboard.writeText(`${window.location.origin}/public/${username}`);
     toast({ title: "Link Copied!", description: "Your public list URL is now on your clipboard." });
   }
 
