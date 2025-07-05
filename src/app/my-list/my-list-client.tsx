@@ -13,7 +13,7 @@ import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
 import { ImageGenerator } from './image-generator'; // Import new server actions
-import { deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
+import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
 import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
 
@@ -103,18 +103,24 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
       category: 'Other' as const,
       position: items.length,
     };
-    const { data, error } = await supabase
-        .from('list_items')
-        .insert(newItemPayload)
-        .select()
-        .single();
-    if (error) {
-        toast({ title: "Error adding item", description: error.message, variant: "destructive" });
-        return;
+    const result = await addListItem(
+      listId, newItemText, items.length);
+    if (result.error) {
+       toast({ title: "Error", description: result.message, variant: "destructive" });
     }
-    if (data) {
-        setItems([...items, data]);
-    }
+
+    // const { data, error } = await supabase
+    //     .from('list_items')
+    //     .insert(newItemPayload)
+    //     .select()
+    //     .single();
+    // if (error) {
+    //     toast({ title: "Error adding item", description: error.message, variant: "destructive" });
+    //     return;
+    // }
+    // if (data) {
+    //     setItems([...items, data]);
+    // }
     setNewItemText('');
   };
 
