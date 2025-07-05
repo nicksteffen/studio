@@ -12,9 +12,8 @@ import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
-import { ImageGenerator } from './image-generator';
-import { createClient } from '@/lib/supabase/client';
-import { updateListTitle } from './actions';
+import { ImageGenerator } from './image-generator'; // Import new server actions
+import { deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
 import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
 
@@ -27,7 +26,6 @@ interface MyListClientProps {
 }
 
 export default function MyListClient({ user, initialListId, initialListTitle, initialItems, initialUsername }: MyListClientProps) {
-  const supabase = createClient();
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [listId, setListId] = useState<string | null>(initialListId);
   const [username, setUsername] = useState<string | null>(initialUsername);
@@ -85,16 +83,9 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
     dragOverItem.current = null;
     setItems(_items);
 
-    const updates = _items.map((item, index) => 
-        supabase
-            .from('list_items')
-            .update({ position: index })
-            .eq('id', item.id)
-    );
-    
-    const results = await Promise.all(updates);
-    const firstError = results.find(res => res.error);
-    
+    // Call server action to update positions
+    const updates = _items.map((item, index) => ({ id: item.id, position: index }));
+    const result = await updateListItemPosition(updates); // Use the new server action
     if (firstError) {
         toast({ title: 'Error saving order', description: firstError.error.message, variant: 'destructive' });
         setItems(originalItems); // Revert on error
@@ -102,11 +93,12 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
   };
 
   const handleAddItem = async () => {
-    if (newItemText.trim() === '' || !listId || !user) return;
+    if (newItemText.trim() === '' || !listId) return;
     const newItemPayload = {
       list_id: listId,
-      user_id: user.id,
+      user_id: user.id, // User ID is available from props
       text: newItemText,
+      // Temporary ID for optimistic update - will be replaced by server ID
       completed: false,
       category: 'Other' as const,
       position: items.length,
@@ -135,22 +127,17 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
         item.id === id ? { ...item, completed: !item.completed } : item
       )
     );
-    const { error } = await supabase
-        .from('list_items')
-        .update({ completed: !itemToToggle.completed })
-        .eq('id', id);
-    if(error){
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        setItems(originalItems);
+    const result = await toggleItemComplete(id, !itemToToggle.completed); // Use the new server action
+    if (result.error) {
+        toast({ title: "Error", description: result.message, variant: "destructive" });
     }
   };
   
   const handleDeleteItem = async (id: string) => {
     const originalItems = [...items];
     setItems(items.filter(item => item.id !== id));
-    const { error } = await supabase.from('list_items').delete().eq('id', id);
-    if (error) {
-      toast({ title: "Error deleting item", description: error.message, variant: "destructive" });
+    const result = await deleteListItem(id); // Use the new server action
+    if (result.error) {
       setItems(originalItems);
     }
   };
@@ -161,16 +148,20 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
   };
 
   const handleSaveEdit = async (id: string) => {
+    if (editingText.trim() === '') {
+        // Optionally show an error or prevent saving empty text
+        toast({ title: "Input Error", description: "Item text cannot be empty.", variant: "destructive" });
+        // Revert to original text if editing becomes empty
+        const originalItem = items.find(item => item.id === id);
+        if (originalItem) setEditingText(originalItem.text);
+        return;
+    }
+
     const originalItems = [...items];
-    setItems(items.map(item => item.id === id ? { ...item, text: editingText } : item));
+    setItems(items.map(item => item.id === id ? { ...item, text: editingText.trim() } : item));
     setEditingItemId(null);
     setEditingText('');
-
-    const { error } = await supabase.from('list_items').update({ text: editingText }).eq('id', id);
-    if (error) {
-        toast({ title: "Error saving item", description: error.message, variant: "destructive" });
-        setItems(originalItems);
-    }
+    const result = await updateListItemText(id, editingText.trim()); // Use the new server action
   };
 
   const completedCount = items.filter(item => item.completed).length;
