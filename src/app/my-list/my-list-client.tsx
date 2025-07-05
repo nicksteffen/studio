@@ -381,7 +381,7 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
           </CardContent>
         </Card>
       </div>
-      <ImageGenerator ref={imageGeneratorRef} items={items} />
+      <ImageGenerator ref={imageGeneratorRef} items={items} listTitle={listTitle} />
     </>
   );
 }
