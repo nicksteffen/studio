@@ -66,25 +66,36 @@ export async function submitSuggestion(prevState: ActionState, formData: FormDat
 }
 
 export async function fetchSuggestions() {
-
   const supabase = await createClient();
 
-    // Fetch suggestions and join with votes to calculate upvote/downvote counts
-    const { data, error } = await supabase
-        .from('feature_suggestions')
-        .select(
-            `
-            *,
-            suggestion_votes(vote_type)
-            `
-        )
-        .order('created_at', { ascending: false }); // Order by creation date
+  // Fetch suggestions and join with votes to calculate upvote/downvote counts
+  const { data, error } = await supabase
+    .from('feature_suggestions')
+    .select('*, suggestion_votes(vote_type)')
+    .order('created_at', { ascending: false });
 
-    if (error) {
-    console.error("Error fetching suggestions:", error);
-    return { data: [], error: error.message || 'Failed to fetch suggestions.' };
+  if (error) {
+    console.error('Error fetching suggestions:', error);
+    return [];
   }
+
+  if (!data) {
+    return [];
+  }
+
+  // Process data to calculate net_votes for each suggestion
+  const suggestionsWithVotes = data.map(suggestion => {
+    const upvotes = suggestion.suggestion_votes.filter(v => v.vote_type === 'upvote').length;
+    const downvotes = suggestion.suggestion_votes.filter(v => v.vote_type === 'downvote').length;
+    return {
+      ...suggestion,
+      net_votes: upvotes - downvotes,
+    };
+  });
+
+  return suggestionsWithVotes;
 }
+
 
 // Placeholder for addVote (to be implemented later)
 export async function addVote(suggestionId: string, voteType: 'upvote' | 'downvote'): Promise<ActionState> {  // This will be implemented to handle voting

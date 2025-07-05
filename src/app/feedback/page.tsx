@@ -19,7 +19,7 @@ export default async function FeedbackPage() {
       if (error) {
           console.error("Error fetching user votes:", error);
       } else {
-          initialUserVotes = data;
+          initialUserVotes = data || [];
       }
   }
 

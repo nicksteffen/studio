@@ -48,7 +48,7 @@ export default function FeedbackClient({ initialSuggestions, currentUser, initia
 
   // Initialize suggestions state and merge in user's initial votes
   const [suggestions, setSuggestions] = useState<Suggestion[]>(
-      initialSuggestions.map(suggestion => {
+      (initialSuggestions || []).map(suggestion => {
           const userVote = initialUserVotes.find(vote => vote.suggestion_id === suggestion.id);
           return {
               ...suggestion,
