@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import type { ListItem } from '@/lib/types';
 import PublicListClientPage from './public-list-client';
+import { profile } from 'console';
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
 
@@ -13,16 +14,21 @@ export default async function PublicProfilePage({ params }: { params: { username
   const isLoggedIn = !!user; 
 
     
+  console.log('looking for match by username ')
+  console.log(username);
   const { data: userProfile, error: profileError } = await supabase
-    .from('profiles')
-    .select('id, username, avatar_url')
+    // .from('profiles')
+    .from('public_profiles')
+    .select('user_id, username, avatar_url')
     .eq('username', username)
     .single();
 
   // console.log(`check: ${userProfile.id} vs ${user.id}`)
-  const isOwner = userProfile?.id === user?.id;
+  const isOwner = userProfile?.user_id === user?.id;
 
   if (profileError || !userProfile) {
+    console.log(profileError);
+    console.log("profile or user pro erro")
     notFound();
   }
 
@@ -31,7 +37,7 @@ export default async function PublicProfilePage({ params }: { params: { username
   const { data: list, error: listError } = await supabase
     .from('lists')
     .select('id, title, is_public')
-    .eq('user_id', userProfile.id)
+    .eq('user_id', userProfile.user_id)
     .single();
 
   if (listError || !list) {
