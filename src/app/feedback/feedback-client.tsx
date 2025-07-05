@@ -11,17 +11,20 @@ import { ThumbsUp, ThumbsDown, LoaderCircle } from 'lucide-react'; // Import ico
 import type { User } from '@supabase/supabase-js'; // Import User type
 import { cn } from '@/lib/utils'; // Import cn
 
-// Define a type for a suggestion with net votes and potentially user's vote status
+// Define a type for a suggestion with vote counts and user's vote status
 interface Suggestion {
     id: string;
     user_id: string;
     title: string;
     description: string | null;
     created_at: string;
-    net_votes: number;
+    upvotes: number;
+    downvotes: number;
     userVoteType?: 'upvote' | 'downvote' | null;
     isVoting?: boolean; // Temporary flag for pending vote UI
 }
+
+
 
 // Helper component to show pending state for submission
 const SubmitButton = () => {
@@ -34,36 +37,27 @@ const SubmitButton = () => {
 };
 
 interface FeedbackClientProps {
-    initialSuggestions: Suggestion[]; // Use the Suggestion type
-    currentUser: User | null; // Pass the current user for identifying user's votes
-    initialUserVotes: { suggestion_id: string; vote_type: 'upvote' | 'downvote' }[]; // Pass initial user votes
+    initialSuggestions: Suggestion[];
+    currentUser: User | null;
 }
 
-export default function FeedbackClient({ initialSuggestions, currentUser, initialUserVotes }: FeedbackClientProps) {
+export default function FeedbackClient({ initialSuggestions, currentUser }: FeedbackClientProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const isFirstRender = useRef(true);
 
   const [state, formAction] = useActionState(submitSuggestion, { message: '', error: false, success: false });
 
-  // Initialize suggestions state and merge in user's initial votes
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(
-      (initialSuggestions || []).map(suggestion => {
-          const userVote = initialUserVotes.find(vote => vote.suggestion_id === suggestion.id);
-          return {
-              ...suggestion,
-              userVoteType: userVote ? userVote.vote_type : null
-          };
-      })
-  );
+  // Use suggestions state to manage the list in the client component
+  const [suggestions, setSuggestions] = useState<Suggestion[]>(initialSuggestions);
 
-
-  // Effect to show toast notifications based on submission action state
+  // Effect to update suggestions state when initialSuggestions prop changes
   useEffect(() => {
-    if (isFirstRender.current) {
-        isFirstRender.current = false;
-        return;
-    }
+    console.log("initialSuggestions prop changed in client", initialSuggestions.length);
+    setSuggestions(initialSuggestions);
+  }, [initialSuggestions]); // Add initialSuggestions as a dependency
+
+  // Effect to show toast notifications and reset form on success
+  useEffect(() => {
     if (state.message) {
       toast({
         title: state.error ? "Error" : "Success!",
@@ -71,21 +65,73 @@ export default function FeedbackClient({ initialSuggestions, currentUser, initia
         variant: state.error ? "destructive" : "default",
       });
     }
-    // Optionally reset the form on success
-    if (state.success && formRef.current) {
-        formRef.current.reset();
+    // Reset form on success
+    if (state.success) {
+        formRef.current?.reset();
     }
   }, [state, toast]);
 
-    // Optimistic update and action call for voting
+  // Handle voting
   const handleVote = async (suggestionId: string, voteType: 'upvote' | 'downvote') => {
     if (!currentUser) {
         toast({ title: "Login Required", description: "You must be logged in to vote.", variant: "default" });
         return;
     }
-    // Note: Full voting logic is not yet implemented in the action.
-    toast({ title: "Coming Soon!", description: "Voting functionality is under development." });
-  }
+
+    // Optimistic update
+    setSuggestions(suggestions.map(suggestion => {
+        if (suggestion.id === suggestionId) {
+            let newUpvotes = suggestion.upvotes;
+            let newDownvotes = suggestion.downvotes;
+            let newUserVoteType = suggestion.userVoteType;
+
+            if (suggestion.userVoteType === voteType) {
+                // User is clicking the same vote type, remove their vote
+                if (voteType === 'upvote') newUpvotes--;
+                else newDownvotes--;
+                newUserVoteType = null;
+            } else {
+                // User is changing their vote or casting a new vote
+                if (suggestion.userVoteType === 'upvote') newUpvotes--; // Remove previous upvote
+                if (suggestion.userVoteType === 'downvote') newDownvotes--; // Remove previous downvote
+
+                if (voteType === 'upvote') newUpvotes++; // Add new upvote
+                else newDownvotes++; // Add new downvote
+                newUserVoteType = voteType;
+            }
+
+            return {
+                ...suggestion,
+                upvotes: newUpvotes,
+                downvotes: newDownvotes,
+                userVoteType: newUserVoteType,
+                isVoting: true, // Set voting state
+            };
+        }
+        return suggestion;
+    }));
+
+    // Call the server action
+    const result = await addVote(suggestionId, voteType);
+
+    // Handle server action response (optional: revert optimistic update on error)
+    if (result.error) {
+        toast({ title: "Error", description: result.message, variant: "destructive" });
+        // Optional: Revert the optimistic update if the server action failed
+        // You would need to store the original state before the optimistic update
+    }
+
+     // After the server action completes (success or failure), reset the isVoting state
+     setSuggestions(suggestions.map(suggestion => {
+        if (suggestion.id === suggestionId) {
+            return {
+                ...suggestion,
+                isVoting: false,
+            };
+        }
+        return suggestion;
+    }));
+  };
 
   return (
     <div className="w-full max-w-2xl py-12 px-4">
@@ -127,11 +173,27 @@ export default function FeedbackClient({ initialSuggestions, currentUser, initia
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => handleVote(suggestion.id, 'upvote')} disabled={suggestion.isVoting}>
-                    <ThumbsUp className={cn("h-5 w-5", suggestion.userVoteType === 'upvote' && 'text-primary fill-primary/20')} />
+                     {suggestion.isVoting && suggestion.userVoteType === 'upvote' ? (
+                       <LoaderCircle className="h-5 w-5 animate-spin" />
+                     ) : (
+                       <ThumbsUp className={cn("h-5 w-5", suggestion.userVoteType === 'upvote' && 'text-primary fill-primary/20')} />
+                     )}
                 </Button>
-                <span className="font-bold w-6 text-center">{suggestion.net_votes}</span>
+                {/* Display upvotes and downvotes */}
+                <div className="flex flex-col items-center">
+                     <span className="text-xs text-muted-foreground leading-none">Up</span>
+                     <span className="font-bold text-sm">{suggestion.upvotes}</span>
+                </div>
+                 <div className="flex flex-col items-center">
+                     <span className="text-xs text-muted-foreground leading-none">Down</span>
+                     <span className="font-bold text-sm">{suggestion.downvotes}</span>
+                </div>
                 <Button variant="ghost" size="icon" onClick={() => handleVote(suggestion.id, 'downvote')} disabled={suggestion.isVoting}>
-                    <ThumbsDown className={cn("h-5 w-5", suggestion.userVoteType === 'downvote' && 'text-destructive fill-destructive/20')} />
+                    {suggestion.isVoting && suggestion.userVoteType === 'downvote' ? (
+                       <LoaderCircle className="h-5 w-5 animate-spin" />
+                     ) : (
+                       <ThumbsDown className={cn("h-5 w-5", suggestion.userVoteType === 'downvote' && 'text-destructive fill-destructive/20')} />
+                     )}
                 </Button>
               </div>
             </div>
