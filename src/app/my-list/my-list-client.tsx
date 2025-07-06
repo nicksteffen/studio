@@ -86,8 +86,8 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
     // Call server action to update positions
     const updates = _items.map((item, index) => ({ id: item.id, position: index }));
     const result = await updateListItemPosition(updates); // Use the new server action
-    if (firstError) {
-        toast({ title: 'Error saving order', description: firstError.error.message, variant: 'destructive' });
+    if (result.error) {
+        toast({ title: 'Error saving order', description: result.message, variant: 'destructive' });
         setItems(originalItems); // Revert on error
     }
   };
@@ -108,19 +108,6 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
     if (result.error) {
        toast({ title: "Error", description: result.message, variant: "destructive" });
     }
-
-    // const { data, error } = await supabase
-    //     .from('list_items')
-    //     .insert(newItemPayload)
-    //     .select()
-    //     .single();
-    // if (error) {
-    //     toast({ title: "Error adding item", description: error.message, variant: "destructive" });
-    //     return;
-    // }
-    // if (data) {
-    //     setItems([...items, data]);
-    // }
     setNewItemText('');
   };
 
