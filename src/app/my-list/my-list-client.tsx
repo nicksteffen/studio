@@ -14,6 +14,7 @@ import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition
 import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
 import { ImagePreviewCard } from '@/components/ImagePreviewCard';
+import { PremiumUpgradeDialog } from '@/components/PremiumDialog';
 
 interface MyListClientProps {
     initialListId: string | null;
@@ -197,10 +198,15 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     });
   }
 
+  const [isOpenPremiumDialog, setIsOpenPremiumDialog] = useState(false)
+
+
+
 
   return (
     <>
       <div className="container mx-auto max-w-3xl py-12 px-4">
+        <PremiumUpgradeDialog onClose={() => setIsOpenPremiumDialog(false)} isOpen={isOpenPremiumDialog}/>
         <div className="text-center mb-4">
           {isEditingTitle ? (
                 <form action={titleFormAction} className="flex items-center gap-2 justify-center w-full max-w-lg mx-auto">
@@ -257,7 +263,7 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
               </Link>
             </Button> )
             :
-            (<Button variant="outline" disabled>
+            (<Button variant="outline" onClick={() => setIsOpenPremiumDialog(true)}>
               <Settings className='mr-2 h-4 w-4'/> Config 
             </Button> )
           }
