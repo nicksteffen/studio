@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
 import { ImagePreviewCard } from '@/components/ImagePreviewCard';
 import { PremiumUpgradeDialog } from '@/components/PremiumDialog';
+import { ListActions } from './ListActions';
 
 interface MyListClientProps {
     initialListId: string | null;
@@ -34,8 +35,8 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
   const [newItemText, setNewItemText] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
+  // const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  // const [shareUrl, setShareUrl] = useState('');
 
   const [listTitle, setListTitle] = useState(initialListTitle);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -55,9 +56,9 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     setListTitle(initialListTitle);
     setUsername(initialUsername);
     setInitialImageOptions(initialImageOptions)
-    if (typeof window !== 'undefined' && initialUsername) {
-        setShareUrl(`${window.location.origin}/public/${initialUsername}`);
-    }
+    // if (typeof window !== 'undefined' && initialUsername) {
+        // setShareUrl(`${window.location.origin}/public/${initialUsername}`);
+    // }
   }, [initialItems, initialListId, initialListTitle, initialUsername, initialImageOptions]);
 
   const isFirstTitleRender = useRef(true);
@@ -158,7 +159,7 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
 
 
   const handleGenerateImage = useCallback(() => {
-    setIsGeneratingImage(true)
+    // setIsGeneratingImage(true)
     if (items.length === 0) {
       toast({
         title: 'Empty List',
@@ -182,31 +183,12 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
         link.click();
       });
     }
-    setIsGeneratingImage(false)
+    // setIsGeneratingImage(false)
   }, [listTitle, currentOptions.backgroundColor]);
-
-  const handleNoUsername = () => {
-    toast({
-        title: "Set a Username First!",
-        description: (
-          <span>
-            You need a username to share your public profile. You can set one on the{' '}
-            <Link href="/profile" className="underline font-bold">Profile page</Link>.
-          </span>
-        ),
-        variant: "default",
-    });
-  }
-
-  const [isOpenPremiumDialog, setIsOpenPremiumDialog] = useState(false)
-
-
-
 
   return (
     <>
       <div className="container mx-auto max-w-3xl py-12 px-4">
-        <PremiumUpgradeDialog onClose={() => setIsOpenPremiumDialog(false)} isOpen={isOpenPremiumDialog}/>
         <div className="text-center mb-4">
           {isEditingTitle ? (
                 <form action={titleFormAction} className="flex items-center gap-2 justify-center w-full max-w-lg mx-auto">
@@ -240,44 +222,7 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
           </p>
         </div>
 
-        <div className="flex justify-end gap-2 mb-4">
-             {username ? (
-                <>
-                    <ShareButton url={shareUrl} title={listTitle} />
-                    <Button variant="outline" asChild>
-                        <Link href={`/public/${username}`}>
-                            <Eye className="mr-2 h-4 w-4" /> Preview
-                        </Link>
-                    </Button>
-                </>
-            ) : (
-                <Button variant="outline" onClick={handleNoUsername}>
-                    <Share2 className="mr-2 h-4 w-4" /> Share
-                </Button>
-            )}
-            {/* Config button shown as disabled if not premoium */}
-            { isPremium ?
-            ( <Button variant="outline" asChild>
-              <Link href={`/${listId}/config`}>
-              <Settings className='mr-2 h-4 w-4'/> Config 
-              </Link>
-            </Button> )
-            :
-            (<Button variant="outline" onClick={() => setIsOpenPremiumDialog(true)}>
-              <Settings className='mr-2 h-4 w-4'/> Config 
-            </Button> )
-          }
-
-            <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
-                {isGeneratingImage ? (
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <ImageIcon className="mr-2 h-4 w-4" />
-                )}
-                {isGeneratingImage ? 'Generating...' : 'Generate Image'}
-            </Button>
-        </div>
-
+        <ListActions listId={listId || ''} userId={username} isPremium={isPremium} onGenerateImage={handleGenerateImage}/>
         {/* List Display */}
         <Card className="shadow-xl">
             <CardHeader>
