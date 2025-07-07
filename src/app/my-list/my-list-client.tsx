@@ -1,7 +1,6 @@
 'use client';
 import { useState, useRef, Fragment, useEffect, useActionState, useCallback } from 'react';
 import type { ImageOptions, ListItem } from '@/lib/types';
-// import type { User } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -10,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
-import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
 import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
 import Link from 'next/link';
@@ -18,7 +16,6 @@ import { ShareButton } from '@/components/share-button';
 import { ImagePreviewCard } from '@/components/ImagePreviewCard';
 
 interface MyListClientProps {
-    // user: User;
     initialListId: string | null;
     initialListTitle: string;
     initialItems: ListItem[];
@@ -275,6 +272,7 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
             </Button>
         </div>
 
+        {/* List Display */}
         <Card className="shadow-xl">
             <CardHeader>
                 <CardTitle className="flex justify-between items-center">
@@ -358,7 +356,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
         </Card>
       </div>
       <ImagePreviewCard hidden={true} listTitle={listTitle} listItems={items} imageOptions={initialImageOptions}/>
-      {/* <ImageGenerator ref={imageGeneratorRef} items={items} listTitle={listTitle} options={initialImageOptions}/> */}
     </>
   );
 }
