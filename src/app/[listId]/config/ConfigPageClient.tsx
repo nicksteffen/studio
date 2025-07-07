@@ -157,7 +157,7 @@ export function ConfigPageClient({ list, initialOptions }: ConfigPageClientProps
               </Select>
             </div>
                 {colorPickers.map((colorPicker) => (
-                    <div>
+                    <div key={colorPicker.key}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{colorPicker.name}</label>
                     <ColorPickerInput 
                         id={colorPicker.key} name={colorPicker.key}
