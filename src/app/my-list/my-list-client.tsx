@@ -1,31 +1,40 @@
 'use client';
-import { useState, useRef, Fragment, useEffect, useActionState } from 'react';
+import { useState, useRef, Fragment, useEffect, useActionState, useCallback } from 'react';
 import type { ListItem } from '@/lib/types';
-import type { User } from '@supabase/ssr';
+// import type { User } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle, Save, X, Eye } from 'lucide-react';
+import { GripVertical, Plus, Share2, Image as ImageIcon, Trash2, Check, Circle, Edit, LoaderCircle, Save, X, Eye, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
-import { ImageGenerator } from './image-generator'; // Import new server actions
+import { ImageGenerator, ImageOptions } from './image-generator'; // Import new server actions
 import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
 import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ImageConfigurator } from './ImageConfigurator';
+import { saveImageOptions } from './imageConfigActions';
+import { list } from 'postcss';
+import { ImagePreviewCard } from '@/components/ImagePreviewCard';
 
 interface MyListClientProps {
-    user: User;
+    // user: User;
     initialListId: string | null;
     initialListTitle: string;
     initialItems: ListItem[];
     initialUsername: string | null;
+    userConfigOptions: ImageOptions,
+    isPremium? : boolean
 }
 
-export default function MyListClient({ user, initialListId, initialListTitle, initialItems, initialUsername }: MyListClientProps) {
+
+
+export default function MyListClient({initialListId, initialListTitle, initialItems, initialUsername, userConfigOptions, isPremium = false }: MyListClientProps) {
   const [items, setItems] = useState<ListItem[]>(initialItems);
   const [listId, setListId] = useState<string | null>(initialListId);
   const [username, setUsername] = useState<string | null>(initialUsername);
@@ -45,15 +54,19 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
+  const [initialImageOptions, setInitialImageOptions] = useState<ImageOptions>(userConfigOptions);
+  const [currentOptions, setCurrentOptions] = useState<ImageOptions>(initialImageOptions);
+
   useEffect(() => {
     setItems(initialItems);
     setListId(initialListId);
     setListTitle(initialListTitle);
     setUsername(initialUsername);
+    setInitialImageOptions(initialImageOptions)
     if (typeof window !== 'undefined' && initialUsername) {
         setShareUrl(`${window.location.origin}/public/${initialUsername}`);
     }
-  }, [initialItems, initialListId, initialListTitle, initialUsername]);
+  }, [initialItems, initialListId, initialListTitle, initialUsername, initialImageOptions]);
 
   const isFirstTitleRender = useRef(true);
   useEffect(() => {
@@ -94,15 +107,6 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
 
   const handleAddItem = async () => {
     if (newItemText.trim() === '' || !listId) return;
-    const newItemPayload = {
-      list_id: listId,
-      user_id: user.id, // User ID is available from props
-      text: newItemText,
-      // Temporary ID for optimistic update - will be replaced by server ID
-      completed: false,
-      category: 'Other' as const,
-      position: items.length,
-    };
     const result = await addListItem(
       listId, newItemText, items.length);
     if (result.error) {
@@ -160,15 +164,9 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
   const completedCount = items.filter(item => item.completed).length;
   const progressValue = (completedCount / 30) * 100;
 
-  const handleGenerateImage = async () => {
-    if (!imageGeneratorRef.current) {
-      toast({
-        title: 'Error',
-        description: 'Image generator is not ready.',
-        variant: 'destructive',
-      });
-      return;
-    }
+
+  const handleGenerateImage = useCallback(() => {
+    setIsGeneratingImage(true)
     if (items.length === 0) {
       toast({
         title: 'Empty List',
@@ -177,46 +175,77 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
       });
       return;
     }
-
-    setIsGeneratingImage(true);
-
-    const node = imageGeneratorRef.current;
-    
-    const clone = node.cloneNode(true) as HTMLElement;
-    
-    clone.style.position = 'absolute';
-    clone.style.left = '-9999px';
-    clone.style.top = '0px';
-    clone.style.zIndex = '-1';
-    
-    document.body.appendChild(clone);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(clone, {
-        useCORS: true,
-        scale: 2, 
-        width: 1080,
-        height: 1920,
-        backgroundColor: null, 
+    console.log("gen image")
+    console.log(items)
+    console.log(listTitle)
+    const previewElement = document.getElementById('image-preview-content');
+    if (previewElement) {
+      // await document.fonts.ready; 
+      html2canvas(previewElement, {
+          useCORS: true,
+          scale: 2,
+          // backgroundColor: config.backgroundColor, // Use the configured background color
+          backgroundColor: currentOptions.backgroundColor, // Use the configured background color
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `${listTitle.replace(/\s+/g, '_').toLowerCase()}_list.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
       });
-
-      const dataUrl = canvas.toDataURL('image/png');
-      download(dataUrl, 'my-before-30-list.png');
-      toast({ title: 'Success!', description: 'Your image has been downloaded.' });
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        title: 'Error Generating Image',
-        description: err.message || 'Could not generate image. Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      document.body.removeChild(clone);
-      setIsGeneratingImage(false);
     }
-  };
+    setIsGeneratingImage(false)
+  }, [listTitle, currentOptions.backgroundColor]);
+
+  // const handleGenerateImage2 = async () => {
+  //   if (!imageGeneratorRef.current) {
+  //     toast({
+  //       title: 'Error',
+  //       description: 'Image generator is not ready.',
+  //       variant: 'destructive',
+  //     });
+  //     return;
+  //   }
+
+
+  //   setIsGeneratingImage(true);
+
+  //   const node = imageGeneratorRef.current;
+    
+  //   const clone = node.cloneNode(true) as HTMLElement;
+    
+  //   clone.style.position = 'absolute';
+  //   clone.style.left = '-9999px';
+  //   clone.style.top = '0px';
+  //   clone.style.zIndex = '-1';
+    
+  //   document.body.appendChild(clone);
+    
+  //   try {
+  //     await new Promise(resolve => setTimeout(resolve, 100));
+
+  //     const canvas = await html2canvas(clone, {
+  //       useCORS: true,
+  //       scale: 2, 
+  //       width: 1080,
+  //       height: 1920,
+  //       backgroundColor: null, 
+  //     });
+
+  //     const dataUrl = canvas.toDataURL('image/png');
+  //     download(dataUrl, 'my-before-30-list.png');
+  //     toast({ title: 'Success!', description: 'Your image has been downloaded.' });
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     toast({
+  //       title: 'Error Generating Image',
+  //       description: err.message || 'Could not generate image. Please try again later.',
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     document.body.removeChild(clone);
+  //     setIsGeneratingImage(false);
+  //   }
+  // };
   
   const handleNoUsername = () => {
     toast({
@@ -230,6 +259,24 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
         variant: "default",
     });
   }
+
+
+  //   const handleSaveOptions = async (newOptions: ImageOptions) => {
+  //   // Optimistic update: Update client state immediately for responsiveness
+  //   setCurrentOptions(newOptions);
+
+  //   try {
+  //     await saveImageOptions(newOptions, listId || '');
+  //     // If server action succeeded, the state is already updated.
+  //     // revalidatePath in server action will ensure next full render is fresh.
+  //     console.log('Options saved and client state updated.');
+  //   } catch (error) {
+  //     console.error('Failed to save options via server action:', error);
+  //     // Rollback state if save failed (optional, but good for robust apps)
+  //     setCurrentOptions(initialImageOptions);
+  //     alert('Failed to save options. Please try again.'); // Use a custom modal instead of alert in production
+  //   }
+  // };
 
   return (
     <>
@@ -282,6 +329,11 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
                     <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
             )}
+            <Button variant="outline" asChild >
+              <Link href={`/${listId}/config`}>
+              <Settings className='mr-2 h-4 w-4'/> Config 
+              </Link>
+            </Button>
             <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
                 {isGeneratingImage ? (
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
@@ -292,6 +344,7 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
             </Button>
         </div>
 
+        {/* {isPremium && listId && <ImageConfigurator initialOptions={currentOptions} initialListId={listId} onSave={handleSaveOptions} />} */}
         <Card className="shadow-xl">
             <CardHeader>
                 <CardTitle className="flex justify-between items-center">
@@ -374,7 +427,8 @@ export default function MyListClient({ user, initialListId, initialListTitle, in
           </CardContent>
         </Card>
       </div>
-      <ImageGenerator ref={imageGeneratorRef} items={items} listTitle={listTitle} />
+      <ImagePreviewCard hidden={true} listTitle={listTitle} listItems={items} imageOptions={initialImageOptions}/>
+      {/* <ImageGenerator ref={imageGeneratorRef} items={items} listTitle={listTitle} options={initialImageOptions}/> */}
     </>
   );
 }
