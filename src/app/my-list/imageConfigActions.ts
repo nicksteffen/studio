@@ -38,11 +38,6 @@ export async function saveImageOptions(options: ImageOptions, listId : string) {
   console.log("data is:")
   console.log(data)
   if (error) {
-    console.log(`Check the data prop: ${!data}`)
-    console.log("error with saving")
-    console.log(listId);
-    console.log("error")
-    console.log(error)
     return {message : error?.message, error: true}
   }
   console.log("revalidating")
@@ -76,14 +71,6 @@ export async function getImageOptionsForList(listId: string): Promise<ImageOptio
       
       throw new Error(`Failed to fetch image options: ${error.message}`);
     }
-
-    // remove this because if there's no data, we should get the default
-    // if (!data) {
-    //   console.log(`No image options found for list ID: ${listId}`);
-    //   return undefined; // Or return a default ImageOptions object if you prefer
-    // }
-
-
     const defaultOptions: ImageOptions = {
         backgroundColor: '#fefae0',
         textColor: '#1f2937',
@@ -96,27 +83,15 @@ export async function getImageOptionsForList(listId: string): Promise<ImageOptio
     if (!data) {
         return defaultOptions;
     }
-
-    // Map the snake_case database columns to camelCase ImageOptions properties
-    // const fetchedOptions: ImageOptions = {
-    //   textColor: data.text_color || undefined,
-    //   backgroundColor: data.background_color || undefined,
-    //   font: data.font || undefined, // Ensure 'font' matches FontClasses type if strict
-    //   titleColor: data.title_color || undefined,
-    //   itemNumberColor: data.item_number_color || undefined,
-    //   completedItemTextColor: data.completed_item_text_color || undefined,
-    //   completedItemIconColor: data.completed_item_icon_color || undefined,
-    // };
-
     const fetchedOptions: ImageOptions = {
-    textColor: data.text_color ?? defaultOptions.textColor,
-    backgroundColor: data.background_color ?? defaultOptions.backgroundColor,
-    font: data.font ?? defaultOptions.font,
-    titleColor: data.title_color ?? defaultOptions.titleColor,
-    itemNumberColor: data.item_number_color ?? defaultOptions.itemNumberColor,
-    completedItemTextColor: data.completed_item_text_color ?? defaultOptions.completedItemTextColor,
-    completedItemIconColor: data.completed_item_icon_color ?? defaultOptions.completedItemIconColor,
-};
+        textColor: data.text_color ?? defaultOptions.textColor,
+        backgroundColor: data.background_color ?? defaultOptions.backgroundColor,
+        font: data.font ?? defaultOptions.font,
+        titleColor: data.title_color ?? defaultOptions.titleColor,
+        itemNumberColor: data.item_number_color ?? defaultOptions.itemNumberColor,
+        completedItemTextColor: data.completed_item_text_color ?? defaultOptions.completedItemTextColor,
+        completedItemIconColor: data.completed_item_icon_color ?? defaultOptions.completedItemIconColor,
+    };
 
     return fetchedOptions;
 

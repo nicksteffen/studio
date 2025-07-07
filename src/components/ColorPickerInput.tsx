@@ -24,10 +24,6 @@ export function ColorPickerInput({
   // Internal state to manage the color input's value
   // Ensure it's always a valid hex string, defaulting to #000000
   const [internalValue, setInternalValue] = useState<string>(value || '#000000');
-  // console.log(`ColorPicker for ${id}`)
-  // console.log("value")
-  // console.log(value)
-
   // Update internal state if the prop value changes from parent
   useEffect(() => {
     if (value && value !== internalValue) {
