@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import MyListClient from './my-list-client';
-import type { ListItem } from '@/lib/types';
-import { ImageOptions } from './image-generator';
+import type { ImageOptions, ListItem } from '@/lib/types';
 import { getImageOptionsForList } from './imageConfigActions';
 
 export default async function MyListPage() {
@@ -73,47 +72,36 @@ export default async function MyListPage() {
 
   const isPremium = profile?.is_premium || false;
   
-
-//   const defaultOptions: ImageOptions = {
-//     backgroundColor: '#fefae0',
-//     textColor: '#1f2937',
-//     font: 'font-sans',
-//     titleColor: '#d4a373',
-//     itemNumberColor: '#9ca3af', // gray-400
-//     completedItemTextColor: '#6b7280', // gray-500
-//     completedItemIconColor: '#16a34a', // green-600
-//   };
-
-//   const userOptions : ImageOptions | undefined = await getImageOptionsForList(listId);
-  const { data, error } = await supabase
-      .from('user_image_options')
-      .select(
-        `
-          text_color,
-          background_color,
-          font,
-          title_color,
-          item_number_color,
-          completed_item_text_color,
-          completed_item_icon_color
-        `
-      )
-      .eq('list_id', listId)
-      .single(); // Use .single() if you expect at most one row for a given list_id
+//   const { data, error } = await supabase
+//       .from('user_image_options')
+//       .select(
+//         `
+//           text_color,
+//           background_color,
+//           font,
+//           title_color,
+//           item_number_color,
+//           completed_item_text_color,
+//           completed_item_icon_color
+//         `
+//       )
+//       .eq('list_id', listId)
+//       .single(); // Use .single() if you expect at most one row for a given list_id
     
-    // if (!data || error) {
+//     // if (!data || error) {
         
-    // }
+//     // }
 
-    const userOptions: ImageOptions = {
-      textColor: data?.text_color || '#1f2937',
-      backgroundColor: data?.background_color || '#fefae0',
-      font: data?.font || 'font-handwriting', // Ensure 'font' matches FontClasses type if strict
-      titleColor: data?.title_color || '#d4a373',
-      itemNumberColor: data?.item_number_color || '#9ca3af',
-      completedItemTextColor: data?.completed_item_text_color || '#6b7280',
-      completedItemIconColor: data?.completed_item_icon_color || '#16a34a',
-    };
+//     const userOptions: ImageOptions = {
+//       textColor: data?.text_color || '#1f2937',
+//       backgroundColor: data?.background_color || '#fefae0',
+//       font: data?.font || 'font-handwriting', // Ensure 'font' matches FontClasses type if strict
+//       titleColor: data?.title_color || '#d4a373',
+//       itemNumberColor: data?.item_number_color || '#9ca3af',
+//       completedItemTextColor: data?.completed_item_text_color || '#6b7280',
+//       completedItemIconColor: data?.completed_item_icon_color || '#16a34a',
+//     };
+    const userOptions  = await getImageOptionsForList(listId);
 
     console.log('current user options')
     console.log(userOptions)

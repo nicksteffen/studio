@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, Fragment, useEffect, useActionState, useCallback } from 'react';
-import type { ListItem } from '@/lib/types';
+import type { ImageOptions, ListItem } from '@/lib/types';
 // import type { User } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,14 +12,9 @@ import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import download from 'downloadjs';
 import { useToast } from "@/hooks/use-toast";
-import { ImageGenerator, ImageOptions } from './image-generator'; // Import new server actions
 import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
 import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ImageConfigurator } from './ImageConfigurator';
-import { saveImageOptions } from './imageConfigActions';
-import { list } from 'postcss';
 import { ImagePreviewCard } from '@/components/ImagePreviewCard';
 
 interface MyListClientProps {
@@ -50,7 +45,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
 
   const { toast } = useToast();
 
-  const imageGeneratorRef = useRef<HTMLDivElement>(null);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
@@ -175,9 +169,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
       });
       return;
     }
-    console.log("gen image")
-    console.log(items)
-    console.log(listTitle)
     const previewElement = document.getElementById('image-preview-content');
     if (previewElement) {
       // await document.fonts.ready; 
@@ -196,57 +187,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     setIsGeneratingImage(false)
   }, [listTitle, currentOptions.backgroundColor]);
 
-  // const handleGenerateImage2 = async () => {
-  //   if (!imageGeneratorRef.current) {
-  //     toast({
-  //       title: 'Error',
-  //       description: 'Image generator is not ready.',
-  //       variant: 'destructive',
-  //     });
-  //     return;
-  //   }
-
-
-  //   setIsGeneratingImage(true);
-
-  //   const node = imageGeneratorRef.current;
-    
-  //   const clone = node.cloneNode(true) as HTMLElement;
-    
-  //   clone.style.position = 'absolute';
-  //   clone.style.left = '-9999px';
-  //   clone.style.top = '0px';
-  //   clone.style.zIndex = '-1';
-    
-  //   document.body.appendChild(clone);
-    
-  //   try {
-  //     await new Promise(resolve => setTimeout(resolve, 100));
-
-  //     const canvas = await html2canvas(clone, {
-  //       useCORS: true,
-  //       scale: 2, 
-  //       width: 1080,
-  //       height: 1920,
-  //       backgroundColor: null, 
-  //     });
-
-  //     const dataUrl = canvas.toDataURL('image/png');
-  //     download(dataUrl, 'my-before-30-list.png');
-  //     toast({ title: 'Success!', description: 'Your image has been downloaded.' });
-  //   } catch (err: any) {
-  //     console.error(err);
-  //     toast({
-  //       title: 'Error Generating Image',
-  //       description: err.message || 'Could not generate image. Please try again later.',
-  //       variant: 'destructive',
-  //     });
-  //   } finally {
-  //     document.body.removeChild(clone);
-  //     setIsGeneratingImage(false);
-  //   }
-  // };
-  
   const handleNoUsername = () => {
     toast({
         title: "Set a Username First!",
@@ -260,23 +200,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     });
   }
 
-
-  //   const handleSaveOptions = async (newOptions: ImageOptions) => {
-  //   // Optimistic update: Update client state immediately for responsiveness
-  //   setCurrentOptions(newOptions);
-
-  //   try {
-  //     await saveImageOptions(newOptions, listId || '');
-  //     // If server action succeeded, the state is already updated.
-  //     // revalidatePath in server action will ensure next full render is fresh.
-  //     console.log('Options saved and client state updated.');
-  //   } catch (error) {
-  //     console.error('Failed to save options via server action:', error);
-  //     // Rollback state if save failed (optional, but good for robust apps)
-  //     setCurrentOptions(initialImageOptions);
-  //     alert('Failed to save options. Please try again.'); // Use a custom modal instead of alert in production
-  //   }
-  // };
 
   return (
     <>
@@ -329,11 +252,19 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
                     <Share2 className="mr-2 h-4 w-4" /> Share
                 </Button>
             )}
-            <Button variant="outline" asChild >
+            {/* Config button shown as disabled if not premoium */}
+            { isPremium ?
+            ( <Button variant="outline" asChild>
               <Link href={`/${listId}/config`}>
               <Settings className='mr-2 h-4 w-4'/> Config 
               </Link>
-            </Button>
+            </Button> )
+            :
+            (<Button variant="outline" disabled>
+              <Settings className='mr-2 h-4 w-4'/> Config 
+            </Button> )
+          }
+
             <Button onClick={handleGenerateImage} disabled={isGeneratingImage}>
                 {isGeneratingImage ? (
                     <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
@@ -344,7 +275,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
             </Button>
         </div>
 
-        {/* {isPremium && listId && <ImageConfigurator initialOptions={currentOptions} initialListId={listId} onSave={handleSaveOptions} />} */}
         <Card className="shadow-xl">
             <CardHeader>
                 <CardTitle className="flex justify-between items-center">
