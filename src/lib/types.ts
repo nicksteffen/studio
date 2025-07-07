@@ -42,3 +42,15 @@ export type AffiliateItem = {
   affiliateUrl: string;
   category: ListItemCategory;
 };
+
+type FontClasses = 'font-sans' | 'font-serif' | 'font-mono' | 'font-handwriting' | 'font-headline' | 'font-display';
+
+export interface ImageOptions {
+  textColor?: string; // Hex color string (e.g., '#123456')
+  backgroundColor?: string; // Hex color string (e.g., '#abcdef')
+  font?: FontClasses; // Overall font for the list items and general text
+  titleColor?: string; // Hex color string
+  itemNumberColor?: string; // Hex color string
+  completedItemTextColor?: string; // Hex color string for completed items
+  completedItemIconColor?: string; // Hex color string for the checkmark icon
+}
