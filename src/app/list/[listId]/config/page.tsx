@@ -15,6 +15,19 @@ export default async function ImageConfigePage({params} : {params: {listId : str
         redirect('/login');
     }
 
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', user.id)
+        .single();
+
+    const isPremium = profile?.is_premium || false;
+    if (!isPremium) {
+        redirect('/billing')
+    }
+
+
     const {data: listData, error: listError} = await supabase
     .from('lists')
     .select('id, title')
