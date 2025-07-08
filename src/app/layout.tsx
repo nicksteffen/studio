@@ -3,6 +3,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/header';
 import { Toaster } from "@/components/ui/toaster"
+import NewFeaturesList from '@/components/NewFeaturesList';
 
 export const metadata: Metadata = {
   title: 'Before30Bucket',
@@ -25,6 +26,7 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased min-h-screen flex flex-col')}>
         <Header />
+        <NewFeaturesList/>
         <main className="flex-1">{children}</main>
         <Toaster />
       </body>
