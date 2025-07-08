@@ -4,12 +4,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { signup } from './actions'
+import OneTapComponent from '@/components/OneTapComponent'
 
-export default function SignUpPage({
+export default async function SignUpPage({
   searchParams,
 }: {
   searchParams: { message: string }
 }) {
+  const { message} = await searchParams;
   return (
     <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm shadow-2xl">
@@ -17,6 +19,7 @@ export default function SignUpPage({
           <CardTitle className="font-headline text-3xl text-primary">Create Account</CardTitle>
           <CardDescription>Start your journey today.</CardDescription>
         </CardHeader>
+        <OneTapComponent/>
         <CardContent>
           <form action={signup} className="space-y-4">
             <div className="space-y-2">
@@ -40,9 +43,11 @@ export default function SignUpPage({
                 minLength={6}
               />
             </div>
-            {searchParams?.message && (
+            {/* {searchParams?.message && ( */}
+            {message && (
               <p className="text-destructive text-sm p-2 bg-destructive/10 rounded-md text-center">
-                {searchParams.message}
+                {/* {searchParams.message} */}
+                {message}
               </p>
             )}
             <Button type="submit" className="w-full">
