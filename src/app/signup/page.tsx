@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { signup } from './actions'
-import OneTapComponent from '@/components/OneTapComponent'
+import GoogleSignInButton from '@/components/GoogleSignInButton'
 
 export default async function SignUpPage({
   searchParams,
@@ -19,7 +19,8 @@ export default async function SignUpPage({
           <CardTitle className="font-headline text-3xl text-primary">Create Account</CardTitle>
           <CardDescription>Start your journey today.</CardDescription>
         </CardHeader>
-        <OneTapComponent/>
+        {/* <OneTapComponent/> */}
+        <GoogleSignInButton/>
         <CardContent>
           <form action={signup} className="space-y-4">
             <div className="space-y-2">

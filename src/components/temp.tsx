@@ -11,7 +11,7 @@ export default function GoogleButton() {
      data-use_fedcm_for_prompt="true">
 </div>
 
-<div class="g_id_signin"
+<div className="g_id_signin"
      data-type="standard"
      data-shape="pill"
      data-theme="outline"
