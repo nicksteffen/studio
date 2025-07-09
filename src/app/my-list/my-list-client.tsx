@@ -10,11 +10,9 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
 import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
-import Link from 'next/link';
-import { ShareButton } from '@/components/share-button';
 import { ImagePreviewCard } from '@/components/ImagePreviewCard';
-import { PremiumUpgradeDialog } from '@/components/PremiumDialog';
 import { ListActions } from './ListActions';
+import { useToast } from '@/hooks/use-toast';
 
 interface MyListClientProps {
     initialListId: string | null;
@@ -34,8 +32,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
   const [newItemText, setNewItemText] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  // const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  // const [shareUrl, setShareUrl] = useState('');
 
   const [listTitle, setListTitle] = useState(initialListTitle);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -55,9 +51,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     setListTitle(initialListTitle);
     setUsername(initialUsername);
     setInitialImageOptions(initialImageOptions)
-    // if (typeof window !== 'undefined' && initialUsername) {
-        // setShareUrl(`${window.location.origin}/public/${initialUsername}`);
-    // }
   }, [initialItems, initialListId, initialListTitle, initialUsername, initialImageOptions]);
 
   const isFirstTitleRender = useRef(true);
@@ -104,19 +97,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     if (result.error) {
        toast({ title: "Error", description: result.message, variant: "destructive" });
     }
-
-    // const { data, error } = await supabase
-    //     .from('list_items')
-    //     .insert(newItemPayload)
-    //     .select()
-    //     .single();
-    // if (error) {
-    //     toast({ title: "Error adding item", description: error.message, variant: "destructive" });
-    //     return;
-    // }
-    // if (data) {
-    //     setItems([...items, data]);
-    // }
     setNewItemText('');
   };
 
@@ -171,7 +151,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
 
 
   const handleGenerateImage = useCallback(() => {
-    // setIsGeneratingImage(true)
     if (items.length === 0) {
       toast({
         title: 'Empty List',
@@ -182,11 +161,9 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     }
     const previewElement = document.getElementById('image-preview-content');
     if (previewElement) {
-      // await document.fonts.ready; 
       html2canvas(previewElement, {
           useCORS: true,
           scale: 2,
-          // backgroundColor: config.backgroundColor, // Use the configured background color
           backgroundColor: currentOptions.backgroundColor, // Use the configured background color
       }).then(canvas => {
         const link = document.createElement('a');
@@ -195,7 +172,6 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
         link.click();
       });
     }
-    // setIsGeneratingImage(false)
   }, [listTitle, currentOptions.backgroundColor]);
 
   return (
