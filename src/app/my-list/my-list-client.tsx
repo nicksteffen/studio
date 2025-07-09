@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import html2canvas from 'html2canvas';
-import { useToast } from "@/hooks/use-toast";
 import { addListItem, deleteListItem, toggleItemComplete, updateListItemPosition, updateListItemText, updateListTitle } from './actions';
 import Link from 'next/link';
 import { ShareButton } from '@/components/share-button';
@@ -105,6 +104,19 @@ export default function MyListClient({initialListId, initialListTitle, initialIt
     if (result.error) {
        toast({ title: "Error", description: result.message, variant: "destructive" });
     }
+
+    // const { data, error } = await supabase
+    //     .from('list_items')
+    //     .insert(newItemPayload)
+    //     .select()
+    //     .single();
+    // if (error) {
+    //     toast({ title: "Error adding item", description: error.message, variant: "destructive" });
+    //     return;
+    // }
+    // if (data) {
+    //     setItems([...items, data]);
+    // }
     setNewItemText('');
   };
 
