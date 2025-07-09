@@ -11,6 +11,10 @@ const updateListTitleSchema = z.object({
   newTitle: z.string().min(1, "Title cannot be empty.").max(100, "Title is too long."),
 });
 
+const addSuggestionSchema = z.object({
+  suggestion: z.string().min(1, "Suggestion is required"),
+});
+
 type UpdateTitleState = {
   message: string;
   error?: boolean;
