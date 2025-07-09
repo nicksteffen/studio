@@ -4,14 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { login } from './actions'
-
-// interface SearchParams {
-//   message: string
-// }
-
-// export default function LoginPage({searchParams} : SearchParams}) {
-//   const {message : string } = await searchParams;
-
+import GoogleSignInButton from '@/components/GoogleSignInButton'
 
 export default async function LoginPage({
   searchparams,
@@ -26,6 +19,8 @@ export default async function LoginPage({
           <CardTitle className="font-headline text-3xl text-primary">Welcome Back</CardTitle>
           <CardDescription>Sign in to continue your list.</CardDescription>
         </CardHeader>
+        {/* <OneTapComponent/> */}
+        <GoogleSignInButton/>
         <CardContent>
           <form action={login} className="space-y-4">
             <div className="space-y-2">

@@ -3,6 +3,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/header';
 import { Toaster } from "@/components/ui/toaster"
+import NewFeaturesList from '@/components/NewFeaturesList';
 
 export const metadata: Metadata = {
   title: 'Before30Bucket',
@@ -22,9 +23,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet" crossOrigin="anonymous" />
+        {/* <script src="https://accounts.google.com/gsi/client" async></script> */}
       </head>
       <body className={cn('font-body antialiased min-h-screen flex flex-col')}>
         <Header />
+        <NewFeaturesList/>
         <main className="flex-1">{children}</main>
         <Toaster />
       </body>
