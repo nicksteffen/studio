@@ -1,17 +1,28 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { signUpForWaitlist } from "./signUpForWaitlistAction";
+import { getIsOnWaitlist, signUpForWaitlist } from "./signUpForWaitlistAction";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 interface WaitlistButtonProps {
-  isOnWaitlist: boolean;
+  initialIsOnWaitlist: boolean;
 }
 
-export default function WaitlistButton({ isOnWaitlist }: WaitlistButtonProps) {
+export default function WaitlistButton({
+  initialIsOnWaitlist,
+}: WaitlistButtonProps) {
   const { toast } = useToast();
+  const [isOnWaitlist, setIsOnWaitlist] = useState(initialIsOnWaitlist);
+
+  useEffect(() => {
+    setIsOnWaitlist(initialIsOnWaitlist);
+  }, [initialIsOnWaitlist]);
+
   const onSignUpForWaitlist = async () => {
     const signUpResult = await signUpForWaitlist();
+    const newStatus = await getIsOnWaitlist();
+    setIsOnWaitlist(newStatus);
     toast({
       title: signUpResult?.status === "success" ? "Success!" : "Error!",
       description: signUpResult?.message,
