@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, Sprout } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { UserNav } from '@/components/user-nav';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useState } from 'react';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, Sprout } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { UserNav } from "@/components/user-nav";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
 
 const navLinks = [
-  { href: '/my-list', label: 'My List' },
-  { href: '/browse', label: 'Browse Ideas' },
-  { href: '/suggestions', label: 'AI Suggestions' },
-  { href: '/feedback', label: 'Feedback' }, // Add the new feedback link
+  { href: "/my-list", label: "My List" },
+  { href: "/browse", label: "Browse Ideas" },
+  { href: "/suggestions", label: "AI Suggestions" },
+  { href: "/feedback", label: "Feedback" }, // Add the new feedback link
 ];
 
 export function Header() {
@@ -21,8 +21,8 @@ export function Header() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 justify-items-center">
+      <div className="container flex h-16 items-center w-full">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Sprout className="h-6 w-6 text-primary" />
@@ -36,8 +36,10 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'transition-colors hover:text-primary',
-                  pathname === link.href ? 'text-primary' : 'text-foreground/60'
+                  "transition-colors hover:text-primary",
+                  pathname === link.href
+                    ? "text-primary"
+                    : "text-foreground/60",
                 )}
               >
                 {link.label}
@@ -64,7 +66,9 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               <Sprout className="mr-2 h-5 w-5 text-primary" />
-              <span className="font-bold font-headline text-lg">Before30Bucket</span>
+              <span className="font-bold font-headline text-lg">
+                Before30Bucket
+              </span>
             </Link>
             <div className="flex flex-col space-y-3">
               {navLinks.map((link) => (
@@ -73,8 +77,10 @@ export function Header() {
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    'transition-colors hover:text-primary p-2 rounded-md',
-                    pathname === link.href ? 'text-primary bg-muted' : 'text-foreground/70'
+                    "transition-colors hover:text-primary p-2 rounded-md",
+                    pathname === link.href
+                      ? "text-primary bg-muted"
+                      : "text-foreground/70",
                   )}
                 >
                   {link.label}
@@ -84,11 +90,11 @@ export function Header() {
           </SheetContent>
         </Sheet>
         <Link href="/" className="flex items-center space-x-2 md:hidden">
-            <Sprout className="h-6 w-6 text-primary" />
-            <span className="font-bold font-headline text-lg">
-              Before30Bucket
-            </span>
-          </Link>
+          <Sprout className="h-6 w-6 text-primary" />
+          <span className="font-bold font-headline text-lg">
+            Before30Bucket
+          </span>
+        </Link>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
           <UserNav />
