@@ -16,7 +16,6 @@ export async function signUpForWaitlist() {
   // const { toast } = useToast();
 
   if (!user) {
-    console.log("User not found");
     return { status: "error", message: "User not found" };
   }
   // try to get display name
@@ -40,34 +39,15 @@ export async function signUpForWaitlist() {
     if (error.code === "23505") {
       // This is a unique constraint violation (entry already exists)
       return { status: "success", message: "You are already on the waitlist" };
-    }
-
-    // // insert into the waitlist
-    // const { data, error } = await supabase
-    //   .from("waitlist")
-    //   .upsert(
-    //     {
-    //       user_id: user.id,
-    //       email: user.email,
-    //       display_name: profile?.display_name,
-    //     },
-    //     { onConflict: "user_id,email" },
-    //   )
-    //   .select()
-    //   .single();
-    // console.log("made request to waitlist");
-    // console.log(error);
-    // console.log(data);
-
-    if (error) {
+    } else {
       return { status: "error", message: "Failed to sign up for waitlist" };
     }
-
-    return {
-      status: "success",
-      message: "You have been added to the waitlist!",
-    };
   }
+
+  return {
+    status: "success",
+    message: "You have been added to the waitlist!",
+  };
 }
 
 export async function getIsOnWaitlist() {
@@ -75,7 +55,6 @@ export async function getIsOnWaitlist() {
   const user = await getUser();
 
   if (!user) {
-    console.log("User not found");
     // something went wrong, maybe show an error and as user to sign in?
     return false;
   }

@@ -1,12 +1,15 @@
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 // Define a schema for validating the suggestion form data
 const suggestionSchema = z.object({
-  title: z.string().min(1, "Title cannot be empty.").max(100, "Title is too long."),
+  title: z
+    .string()
+    .min(1, "Title cannot be empty.")
+    .max(100, "Title is too long."),
   description: z.string().max(500, "Description is too long.").optional(), // Make description optional
 });
 
@@ -21,28 +24,37 @@ type ActionState = {
     title: string;
     description: string | null;
   };
-}
+};
 
-export async function submitSuggestion(prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function submitSuggestion(
+  prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return { message: "You must be logged in to submit suggestions.", error: true };
+    return {
+      message: "You must be logged in to submit suggestions.",
+      error: true,
+    };
   }
 
   // Validate the form data
   const validatedFields = suggestionSchema.safeParse({
-    title: formData.get('title'),
-    description: formData.get('description'),
+    title: formData.get("title"),
+    description: formData.get("description"),
   });
 
   if (!validatedFields.success) {
     // Return the first error message from validation
     return {
-      message: validatedFields.error.flatten().fieldErrors.title?.[0] ||
-               validatedFields.error.flatten().fieldErrors.description?.[0] ||
-               "Invalid input.",
+      message:
+        validatedFields.error.flatten().fieldErrors.title?.[0] ||
+        validatedFields.error.flatten().fieldErrors.description?.[0] ||
+        "Invalid input.",
       error: true,
     };
   }
@@ -52,100 +64,90 @@ export async function submitSuggestion(prevState: ActionState, formData: FormDat
   try {
     // Insert the new suggestion into the feature_suggestions table
     const { data, error } = await supabase
-      .from('feature_suggestions')
+      .from("feature_suggestions")
       .insert({
         user_id: user.id,
         title: title,
         description: description,
       })
-      .select('*') // Select the inserted data
+      .select("*") // Select the inserted data
       .single(); // Expect a single row
 
     if (error || !data) throw error;
 
     // Revalidate the feedback page to show the new suggestion
-    revalidatePath('/feedback');
+    revalidatePath("/feedback");
 
     return { message: "Suggestion submitted successfully!", success: true };
-
   } catch (error: any) {
     console.error("Error submitting suggestion:", error.message);
-    return { message: error.message || 'Failed to submit suggestion.', error: true };
+    return {
+      message: error.message || "Failed to submit suggestion.",
+      error: true,
+    };
   }
 }
 
 // Placeholder for addVote (to be implemented later)
-export async function addVote(suggestionId: string, voteType: 'upvote' | 'downvote'): Promise<ActionState> {
+export async function addVote(
+  suggestionId: string,
+  voteType: "upvote" | "downvote",
+): Promise<ActionState> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return { message: "You must be logged in to vote.", error: true };
   }
 
   const { data, error } = await supabase
-   .from('suggestion_votes')
-   .select('id, vote_type')
-   .eq('user_id', user.id)
-   .eq('suggestion_id', suggestionId)
-   .single();
+    .from("suggestion_votes")
+    .select("id, vote_type")
+    .eq("user_id", user.id)
+    .eq("suggestion_id", suggestionId)
+    .single();
 
-  console.log("data", data)
-  if (error && error.code !== 'PGRST116') { // PGRST116 means no row found (user hasn't voted)
-    console.log("existing vote check")
-    console.error("Error checking existing vote:", error.message);
-    return { message: 'Failed to check existing vote.', error: true };
+  if (error && error.code !== "PGRST116") {
+    // PGRST116 means no row found (user hasn't voted)
+    return { message: "Failed to check existing vote.", error: true };
   }
 
   // checking this error is a mistake, we check above for errors that aren't no rows returned error
-  // if (error) {
-  //   console.error('Error fetching suggestions:', error.message);
-  //   console.log(error)
-  //   console.log)` error code: ${error.code} match check {error.code ==}`
-  //   return {message: "Error fetching suggestions", error: true}
-  // }
 
-  // If user has already voted with the same type, 
+  // If user has already voted with the same type,
   // return early -for now, we can bring back removing votes later
-  // console.log(`data vote type ${data.vote_type} vs voteType ${voteType}`)
   if (data && data.vote_type === voteType) {
-    console.log("remove vote logic")
-    // console.log(`data vote type ${data.vote_type} vs voteType ${voteType}`)
-    // return {message: 'You have already voted with this type.'}
-    
-  // }
+    // }
     const { error: deleteError } = await supabase
-      .from('suggestion_votes')
+      .from("suggestion_votes")
       .delete()
-      .eq('id', data.id);
+      .eq("id", data.id);
 
     if (deleteError) {
       console.error("Error removing vote:", deleteError.message);
-      return { message: 'Failed to remove vote.', error: true };
+      return { message: "Failed to remove vote.", error: true };
     }
     // we made a successful change, we need to revalidate
-    revalidatePath('/feedback');
+    revalidatePath("/feedback");
     return { message: "Vote removed successfully!", success: true };
   }
-
 
   // return data || [];
 
   // Upsert the new vote
-  console.log(`going to chnge vote with vote_type ${voteType}`)
-  const { error: upsertError } = await supabase
-   .from('suggestion_votes')
-   .upsert(
+  const { error: upsertError } = await supabase.from("suggestion_votes").upsert(
     { user_id: user.id, suggestion_id: suggestionId, vote_type: voteType },
-    { onConflict: 'user_id, suggestion_id' } // Define the conflict constraint
-    );
+    { onConflict: "user_id, suggestion_id" }, // Define the conflict constraint
+  );
 
   if (upsertError) {
     console.error("Error upserting vote:", upsertError.message);
-    return { message: 'Failed to record vote.', error: true };
+    return { message: "Failed to record vote.", error: true };
   }
 
-  revalidatePath('/feedback');
+  revalidatePath("/feedback");
 
   return { message: "Vote recorded successfully!", success: true };
 }

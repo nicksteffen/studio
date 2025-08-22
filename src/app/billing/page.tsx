@@ -67,7 +67,7 @@ export default async function BillingPage() {
               </p>
             </>
           ) : (
-            <WaitlistButton isOnWaitlist={isOnWaitlist} />
+            <WaitlistButton initialIsOnWaitlist={isOnWaitlist} />
           )}
         </CardFooter>
       </Card>

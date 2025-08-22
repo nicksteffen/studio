@@ -1,6 +1,4 @@
-'use client'
-export default function Button(haveUser : boolean) {
-    return (
-        <button onClick={() => {console.log(haveUser)}} > click</button>
-    )
+"use client";
+export default function Button(haveUser: boolean) {
+  return <div> TEST PAGE</div>;
 }
