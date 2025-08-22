@@ -11,6 +11,7 @@ async function getUser() {
 }
 
 export async function signUpForWaitlist() {
+  console.log("server aciont sign up for qaitlist");
   const supabase = await createClient();
   const user = await getUser();
   // const { toast } = useToast();
@@ -25,6 +26,8 @@ export async function signUpForWaitlist() {
     .eq("id", user.id)
     .single();
 
+  console.log("after profiles");
+
   const { data, error } = await supabase
     .from("waitlist")
     .insert({
@@ -37,13 +40,13 @@ export async function signUpForWaitlist() {
 
   if (error) {
     if (error.code === "23505") {
+      console.log("dupe error");
       // This is a unique constraint violation (entry already exists)
       return { status: "success", message: "You are already on the waitlist" };
     } else {
       return { status: "error", message: "Failed to sign up for waitlist" };
     }
   }
-
   return {
     status: "success",
     message: "You have been added to the waitlist!",
