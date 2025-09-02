@@ -10,17 +10,18 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import Image from "next/image";
 import { deleteListFile, uploadListFile } from "@/app/my-list/actions";
 import { FaPlus } from "react-icons/fa";
 import { cn } from "@/lib/utils";
+import { MediaDisplay } from "./MediaDisplay";
 
 interface FileUploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   fileType: "photo" | "video";
   itemId: string;
-  currentUrl?: string;
+  currentUrl?: string | null;
+  onUrlChange: (newUrl: string | null) => void;
 }
 
 export function FileUploadDialog({
@@ -29,13 +30,13 @@ export function FileUploadDialog({
   fileType,
   itemId,
   currentUrl,
+  onUrlChange,
 }: FileUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [loadingMedia, setLoadingMedia] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,9 +44,6 @@ export function FileUploadDialog({
     if (isOpen) {
       setMessage(null);
       setFile(null);
-      setLoadingMedia(true);
-      const timer = setTimeout(() => setLoadingMedia(false), 500);
-      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -109,9 +107,7 @@ export function FileUploadDialog({
         setMessage(result.message);
       } else {
         setMessage(result.message);
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        onUrlChange(result.url); // Call the parent callback to update the URL
       }
     } catch (error) {
       console.error(error);
@@ -135,9 +131,7 @@ export function FileUploadDialog({
         setMessage(result.message);
       } else {
         setMessage(result.message);
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        onUrlChange(null); // Call the parent callback to clear the URL
       }
     } catch (error) {
       console.error(error);
@@ -161,30 +155,8 @@ export function FileUploadDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {loadingMedia && currentUrl ? (
-            <div className="flex justify-center items-center h-40">
-              <p>Loading media...</p>
-            </div>
-          ) : currentUrl ? (
-            <div className="mb-4">
-              <p className="text-sm font-medium text-center">Current Media:</p>
-              <div
-                className="mt-2 rounded-md overflow-hidden mx-auto"
-                style={{ width: 200, height: 200 }}
-              >
-                {fileType === "photo" ? (
-                  <Image
-                    src={currentUrl}
-                    alt={`Current ${fileType}`}
-                    width={200}
-                    height={200}
-                    className="object-cover w-full h-full"
-                  />
-                ) : (
-                  <video src={currentUrl} controls className="w-full h-full" />
-                )}
-              </div>
-            </div>
+          {currentUrl ? (
+            <MediaDisplay url={currentUrl} fileType={fileType} />
           ) : (
             <div
               className={cn(
@@ -220,7 +192,11 @@ export function FileUploadDialog({
 
           {message && (
             <p
-              className={`text-sm text-center ${message.includes("successful") ? "text-green-500" : "text-red-500"}`}
+              className={`text-sm text-center ${
+                message.includes("successful")
+                  ? "text-green-500"
+                  : "text-red-500"
+              }`}
             >
               {message}
             </p>
